@@ -28,3 +28,38 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+
+  arm-build:
+    runs-on: ubuntu-latest
+    # container:
+    #   image: mcr.microsoft.com/dotnet/sdk:8.0.203-jammy-arm64v8
+    #   volumes:
+    #     - /github/home/out:/github/home/out
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src
+
+      - uses: uraimo/run-on-arch-action@v2
+        name: Build
+        id: build-arm
+        with:
+          base_image: mcr.microsoft.com/dotnet/sdk:8.0.203-jammy-arm64v8
+          githubToken: ${{ github.token }}
+          dockerRunArgs: |
+            --volume "${PWD}/src:/app"
+            --volume "${PWD}/out:/out"
+          run: |
+            dotnet publish /app/src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r linux-arm64 -o /out --self-contained true
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Get-ChildItem "out/Logship.Agent.ConsoleHost.exe", "out/Logship.Agent.ConsoleHost", "out/appsettings.json" -ErrorAction SilentlyContinue |
+            Compress-Archive -DestinationPath "LogshipAgent-linux-arm64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64
+          path: |
+            *.zip
