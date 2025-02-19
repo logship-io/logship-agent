@@ -8,7 +8,7 @@
     <BuildRoot>$(RepoRoot)build</BuildRoot>
     <TreatWarningsAsErrors Condition="'$(TreatWarningsAsErrors)' == ''">True</TreatWarningsAsErrors>
     <CentralPackagesFile>$(BuildRoot)\packages\Packages.props</CentralPackagesFile>
-    <NoWarn>$(NoWarn);CS8981</NoWarn>
+    <NoWarn>$(NoWarn);CS8981;IL3053</NoWarn>
     <CentralPackagesFile>$(BuildRoot)\packages\Packages.props</CentralPackagesFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>

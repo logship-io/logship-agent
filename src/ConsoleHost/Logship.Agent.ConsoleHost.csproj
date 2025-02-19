@@ -16,6 +16,8 @@
         <StripSymbols>true</StripSymbols>
         <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
       <InvariantGlobalization>true</InvariantGlobalization>
+      <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+      <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
     </PropertyGroup>
 
     <ItemGroup>
