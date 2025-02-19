@@ -14,7 +14,7 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <NetCoreVersion>net8.0</NetCoreVersion>
+    <NetCoreVersion>net9.0</NetCoreVersion>
     <NetStandardVersion>netstandard2.0</NetStandardVersion>
     <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
     <IsAotCompatible>true</IsAotCompatible>
