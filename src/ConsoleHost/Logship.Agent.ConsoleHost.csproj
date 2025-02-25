@@ -15,7 +15,8 @@
         <TrimmerRemoveSymbols>true</TrimmerRemoveSymbols>
         <StripSymbols>true</StripSymbols>
         <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
-      <InvariantGlobalization>true</InvariantGlobalization>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <ItemGroup>

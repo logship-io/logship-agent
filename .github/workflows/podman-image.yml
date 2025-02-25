@@ -8,7 +8,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  DOTNET_VERSION: '8.0.203'
+  DOTNET_VERSION: '9.0.102'
 
 jobs:
   build:
@@ -21,12 +21,12 @@ jobs:
             os: windows-latest
           - runtime: linux-x64
             os: ubuntu-latest
-          # - runtime: linux-arm64
-          #   os: ubuntu-latest
-          - os: macos-latest
-            runtime: osx-x64
-          - os: macos-latest
-            runtime: osx-arm64
+          - runtime: linux-arm64
+            os: ubuntu-22.04-arm
+          - runtime: osx-x64
+            os: macos-latest
+          - runtime: osx-arm64
+            os: macos-latest
           
     name: Build
     runs-on: ${{ matrix.os }}

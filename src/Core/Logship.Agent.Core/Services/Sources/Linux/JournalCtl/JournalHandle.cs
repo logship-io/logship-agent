@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
 {
@@ -10,10 +11,11 @@ namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
 
         public override bool IsInvalid => handle == nint.Zero;
 
-        public static JournalHandle Open(int flags)
+        public static JournalHandle Open(ILogger logger, int flags)
         {
             var handle = new JournalHandle();
             int result = Interop.sd_journal_open(out nint journal, flags);
+            JournalCtlLog.JournalOpen(logger, result);
             if (result < 0)
             {
                 Interop.Throw(result, "Couldn't open journal file");
@@ -32,5 +34,11 @@ namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
 
             return true;
         }
+    }
+
+    internal static partial class JournalCtlLog
+    {
+        [LoggerMessage(LogLevel.Debug, "sd_journal_open. Result was {Code}")]
+        public static partial void JournalOpen(ILogger logger, int code);
     }
 }

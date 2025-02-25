@@ -19,11 +19,11 @@ namespace Logship.Agent.Core.Inputs.Common
         public HealthChecksService(IOptions<SourcesConfiguration> config, IEventBuffer sink, ILogger<HealthChecksService> logger)
             : base(config.Value.HealthChecks, sink, nameof(HealthChecksService), logger)
         {
-            this.sink = sink;;
+            this.sink = sink;
             this.targets = new List<HealthCheckTarget>();
             this.healthChecks = new List<Task<HealthCheckState>>();
 
-            foreach(var target in this.Config.Targets)
+            foreach (var target in this.Config.Targets)
             {
                 if (false == Uri.TryCreate(target.Endpoint, UriKind.Absolute, out Uri? uri))
                 {
@@ -196,10 +196,10 @@ namespace Logship.Agent.Core.Inputs.Common
         [LoggerMessage(LogLevel.Warning, "Invalid HealthCheck Target Endpoint: {Uri}")]
         public static partial void InvalidHealthCheckTarget(ILogger logger, string uri);
 
-        [LoggerMessage(LogLevel.Warning, "No valid HealthChecks defined. Ending Service Execution.")]
+        [LoggerMessage(LogLevel.Information, "No valid HealthChecks defined. Ending Service Execution.")]
         public static partial void SkipHealthChecks(ILogger logger);
 
-        [LoggerMessage(LogLevel.Warning, "Initializing HealthCheck for endpoint {Uri} with interval {Interval}")]
+        [LoggerMessage(LogLevel.Information, "Initializing HealthCheck for endpoint {Uri} with interval {Interval}")]
         public static partial void SkipHealthChecks(ILogger logger, Uri uri, TimeSpan interval);
 
         [LoggerMessage(LogLevel.Debug, "Starting HealthCheck on {Endpoint}")]
@@ -211,7 +211,7 @@ namespace Logship.Agent.Core.Inputs.Common
         [LoggerMessage(LogLevel.Warning, "HealthCheck on endpoint {Endpoint} failed.")]
         public static partial void Error(ILogger logger, Uri endpoint, Exception exception);
 
-        [LoggerMessage(LogLevel.Warning, "HealthCheck failed.")]
+        [LoggerMessage(LogLevel.Information, "HealthCheck failed.")]
         public static partial void Error(ILogger logger, Exception exception);
     }
 }

@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\DeviceIdentifier\Logship.Agent.DeviceIdentifier.csproj" />
     <ProjectReference Include="..\..\Otlp\Logship.Agent.Otlp.csproj" />
   </ItemGroup>
 

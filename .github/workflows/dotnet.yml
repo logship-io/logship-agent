@@ -1,25 +1,41 @@
 # This workflow will build a .NET project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: .NET
-
 on:
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 
+env:
+  DOTNET_VERSION: '9.0.102'
+
 jobs:
   build:
+    strategy:
+      matrix:
+        include:
+          - runtime: win-x64
+            os: windows-latest
+          - runtime: win-arm64
+            os: windows-latest
+          - runtime: linux-x64
+            os: ubuntu-latest
+          - runtime: linux-arm64
+            os: ubuntu-22.04-arm
+          - runtime: osx-x64
+            os: macos-latest
+          - runtime: osx-arm64
+            os: macos-latest
 
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
+    
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
     - name: Init Submodules
       run: git submodule update --init --recursive
     - name: Restore dependencies
@@ -28,3 +44,5 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    - name: Publish
+      run: dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r linux-x64 -o out --self-contained true

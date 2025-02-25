@@ -26,13 +26,13 @@ namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
             "SOURCE_REALTIME_TIMESTAMP",
         ];
 
-        public JournalCtlService(IOptions<SourcesConfiguration> config, IEventBuffer buffer, ILogger<JournalCtlService> logger) 
+        public JournalCtlService(IOptions<SourcesConfiguration> config, IEventBuffer buffer, ILogger<JournalCtlService> logger)
             : base(nameof(JournalCtlService), config.Value.JournalCtl, logger)
         {
             this.buffer = buffer;
             fields = new HashSet<string>(DEFAULT_FIELDS);
             this.flags = this.Config.Flags;
-            foreach(var column in this.Config.IncludeFields)
+            foreach (var column in this.Config.IncludeFields)
             {
                 this.fields.Add(column);
             }
@@ -52,18 +52,25 @@ namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
 
         void RunSync(CancellationToken token)
         {
-            using var journal = JournalHandle.Open(flags);
+            using var journal = JournalHandle.Open(this.Logger, flags);
             int seekResult = Interop.sd_journal_seek_tail(journal.DangerousGetHandle());
             if (seekResult < 0)
             {
                 Interop.Throw(seekResult, "Error during sd_journal_seek_tail");
             }
 
+            // Go back and forth one entry.
+            // After upgrading to Ubuntu 24 we never receive *any* entries after seeking tail
+            // This fixes it, I don't know.
+            _ = Interop.sd_journal_previous(journal.DangerousGetHandle());
+            _ = Interop.sd_journal_next(journal.DangerousGetHandle());
+
             int result;
             int count = 0;
             do
             {
                 result = Interop.sd_journal_next(journal.DangerousGetHandle());
+                JournalCtlLog.NextResult(Logger, result);
                 switch (result)
                 {
                     case 1:
@@ -76,6 +83,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
                             JournalCtlLog.Blocking(Logger, count);
                             count = 0;
                         }
+
                         WaitForJournal(journal, token);
                         break;
                     default:
@@ -159,7 +167,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
                 return true;
             }
 
-            foreach(JournalCtlFilterTypeConfiguration filter in this.Config.Filters)
+            foreach (JournalCtlFilterTypeConfiguration filter in this.Config.Filters)
             {
                 if (MatchesFilterType(filter, fields, extraData))
                 {
@@ -235,12 +243,15 @@ namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
             return true;
         }
 
-        
+
     }
 
     internal static partial class JournalCtlLog
     {
         [LoggerMessage(LogLevel.Trace, "JournalCtl blocking. Last flush was {Count} entries.")]
         public static partial void Blocking(ILogger logger, int count);
+
+        [LoggerMessage(LogLevel.Debug, "sd_journal_next. Result was {Result}")]
+        public static partial void NextResult(ILogger logger, int result);
     }
 }
