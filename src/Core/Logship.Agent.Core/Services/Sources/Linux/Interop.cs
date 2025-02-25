@@ -10,7 +10,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux
         /// Opens the journal for reading.
         /// </summary>
         /// <returns>Returns 0 if successful, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD)]
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_open(out nint journal, int flags);
 
         /// <summary>
@@ -18,29 +18,36 @@ namespace Logship.Agent.Core.Services.Sources.Linux
         /// </summary>
         /// <param name="timeout_usec">The timeout for waiting, in microseconds. A value of -1 means wait indefinitely.</param>
         /// <returns>Returns 1 if there is new data available, 0 if the timeout expired, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD)]
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_wait(nint journal, int timeout_usec);
 
         /// <summary>
         /// Closes the journal.
         /// </summary>
         /// <returns>Returns 0 if successful, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD)]
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_close(nint journal);
 
         /// <summary>
         /// Advances to the next journal entry.
         /// </summary>
         /// <returns>Returns 1 if successful, 0 if there are no more entries, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD)]
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_next(nint journal);
+
+        /// <summary>
+        /// Advances to the previous journal entry.
+        /// </summary>
+        /// <returns>Returns 1 if successful, 0 if there are no more entries, or a negative error code if an error occurred.</returns>
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int sd_journal_previous(nint journal);
 
         /// <summary>
         /// Seeks to a specific journal entry using its cursor value.
         /// </summary>
         /// <param name="cursor">The cursor value of the entry to seek to.</param>
         /// <returns>Returns 0 if successful, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD, CharSet = CharSet.Unicode)]
+        [DllImport(LibSystemD, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_seek(string cursor);
 
         /// <summary>
@@ -50,7 +57,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux
         /// <param name="data">A pointer to the buffer to store the field data.</param>
         /// <param name="length">The length of the buffer.</param>
         /// <returns>Returns the length of the field data if successful, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD, CharSet = CharSet.Unicode)]
+        [DllImport(LibSystemD, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_get_data(nint journal, string field, out nint data, out nuint length);
 
         /// <summary>
@@ -59,7 +66,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux
         /// <param name="data">A pointer to the buffer to store the field data.</param>
         /// <param name="length">The length of the buffer.</param>
         /// <returns>Returns 1 if there are more fields, 0 if there are no more fields, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD)]
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_enumerate_available_data(nint journal, out nuint data, out nuint length);
 
         /// <summary>
@@ -68,21 +75,21 @@ namespace Logship.Agent.Core.Services.Sources.Linux
         /// <param name="fd">The file descriptor of the journal.</param>
         /// <param name="real_time">If non-zero, get the file descriptor of the real-time journal. Otherwise, get the file descriptor of the system journal.</param>
         /// <returns>Returns 0 if successful, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD)]
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_get_fd(out int fd, int real_time);
 
         /// <summary>
         /// Seeks to the beginning of the journal.
         /// </summary>
         /// <returns>Returns 0 if successful, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD)]
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_seek_head(nint journal);
 
         /// <summary>
         /// Seeks to the end of the journal.
         /// </summary>
         /// <returns>Returns 0 if successful, or a negative error code if an error occurred.</returns>
-        [DllImport(LibSystemD)]
+        [DllImport(LibSystemD, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int sd_journal_seek_tail(nint journal);
 
         // <summary>

@@ -15,6 +15,7 @@
         <TrimmerRemoveSymbols>true</TrimmerRemoveSymbols>
         <StripSymbols>true</StripSymbols>
         <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+        <IsAotCompatible>true</IsAotCompatible>
       <InvariantGlobalization>true</InvariantGlobalization>
       <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
       <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>

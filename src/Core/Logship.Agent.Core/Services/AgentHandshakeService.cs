@@ -2,6 +2,10 @@ using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Internals.Models;
+using Logship.Agent.DeviceIdentifier.Formatter;
+using Logship.DeviceIdentifier;
+using Logship.DeviceIdentifier.Components;
+using Logship.DeviceIdentifier.Components.Linux;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
@@ -16,8 +20,7 @@ namespace Logship.Agent.Core.Services
         private readonly IHandshakeAuth handshakeAuthenticator;
         private readonly ILogger<AgentHandshakeService> logger;
         private readonly IHttpClientFactory clientFactory;
-        private readonly string deviceId;
-
+        private string deviceId = string.Empty;
 
         public AgentHandshakeService(ITokenStorage tokenStorage, IOptions<OutputConfiguration> config, IHandshakeAuth handshakeAuthenticator, IHttpClientFactory httpClientFactory, ILogger<AgentHandshakeService> logger)
         {
@@ -26,16 +29,23 @@ namespace Logship.Agent.Core.Services
             this.handshakeAuthenticator = handshakeAuthenticator;
             this.logger = logger;
             this.clientFactory = httpClientFactory;
-
-            // todo: real device ID
-            this.deviceId = Guid.NewGuid().ToString();
         }
 
         public async Task PerformHandshakeAsync(CancellationToken cancellationToken)
         {
             var delay = TimeSpan.FromSeconds(5);
-            AgentHandshakeServiceLog.AgentHandshake(this.logger);
 
+            var deviceHash = new DeviceIdentifierBuilder();
+            await deviceHash.AddAspectsAsync(
+            [
+                new MacAddressAspect(),
+                new HostNameAspect(),
+                new OperatingSystemAspect(),
+                new DockerContainerIdAspect(),
+            ], cancellationToken);
+            this.deviceId = deviceHash.Build(new Sha512Formatter());
+
+            AgentHandshakeServiceLog.AgentHandshake(this.logger);
             while (false == cancellationToken.IsCancellationRequested)
             {
                 if (await this.RegisterWithStoredTokenAsync(cancellationToken))
