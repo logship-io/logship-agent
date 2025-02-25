@@ -21,12 +21,12 @@ jobs:
             os: windows-latest
           - runtime: linux-x64
             os: ubuntu-latest
-          - runtime: linux-arm64
-            os: ubuntu-22.04-arm
-          - runtime: osx-x64
-            os: macos-latest
-          - runtime: osx-arm64
-            os: macos-latest
+          # - runtime: linux-arm64
+          #   os: ubuntu-22.04-arm
+          # - runtime: osx-x64
+          #   os: macos-latest
+          # - runtime: osx-arm64
+          #   os: macos-latest
 
     runs-on: ${{ matrix.os }}
     
