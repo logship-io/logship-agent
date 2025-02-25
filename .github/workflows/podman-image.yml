@@ -38,6 +38,11 @@ jobs:
         run: |
           sudo apt-get install gcc make gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu zlib1g-dev
 
+      - name: MacOS dependencies
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          brew install llvm
+
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
         with:
