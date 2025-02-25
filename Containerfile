@@ -1,5 +1,5 @@
-ARG BASE_IMAGE=mcr.microsoft.com/dotnet/sdk:8.0-jammy
-ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/runtime-deps:8.0-jammy
+ARG BASE_IMAGE=mcr.microsoft.com/dotnet/sdk:9.0
+ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/runtime-deps:9.0
 
 FROM $BASE_IMAGE AS build-env
 WORKDIR /app
