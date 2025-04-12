@@ -12,6 +12,7 @@ namespace Logship.Agent.Core.Events
     public sealed class OutputAuthenticator : IOutputAuth, IHandshakeAuth, IDisposable
     {
         private readonly string endpoint;
+        private readonly Guid subscriptionId;
         private readonly ITokenStorage tokenStorage;
         private readonly IHttpClientFactory httpClient;
         private readonly ILogger<OutputAuthenticator> logger;
@@ -24,6 +25,7 @@ namespace Logship.Agent.Core.Events
         public OutputAuthenticator(IOptions<OutputConfiguration> config, ITokenStorage tokenStorage, IHttpClientFactory httpClient, ILogger<OutputAuthenticator> logger)
         {
             this.endpoint = config.Value.Endpoint;
+            this.subscriptionId = config.Value.Account;
             this.tokenStorage = tokenStorage;
             this.httpClient = httpClient;
             this.logger = logger;
@@ -68,7 +70,7 @@ namespace Logship.Agent.Core.Events
                     if (this.RequiresRefresh)
                     {
                         AuthenticatorLog.AccessToken(logger);
-                        using var request = await Api.GetRefreshTokensAsync(endpoint, token);
+                        using var request = await Api.GetRefreshTokensAsync(endpoint, this.subscriptionId, token);
                         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", this.refreshToken);
                         using var client = this.httpClient.CreateClient(nameof(OutputAuthenticator));
                         using var result = await client.SendAsync(request, token);

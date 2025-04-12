@@ -151,7 +151,7 @@ namespace Logship.Agent.Core.Services
         private async Task<bool> RefreshWithTokenAsync(string refreshToken, CancellationToken token)
         {
             using var client = this.clientFactory.CreateClient(nameof(AgentHandshakeService));
-            using var request = await Api.GetRefreshTokensAsync(config.Value.Endpoint, token);
+            using var request = await Api.GetRefreshTokensAsync(config.Value.Endpoint, config.Value.Account, token);
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", refreshToken);
             try
             {
@@ -185,8 +185,8 @@ namespace Logship.Agent.Core.Services
         {
             using var client = this.clientFactory.CreateClient(nameof(AgentHandshakeService));
             var name = System.Environment.MachineName;
-            var model = new Internals.Models.AgentRegistrationRequestModel(name, name, deviceId, [], this.config.Value.Account);
-            using var registerRequest = await Api.PostAgentHandshakeAsync(this.config.Value.Endpoint, model, token);
+            var model = new Internals.Models.AgentRegistrationRequestModel(name, name, deviceId, []);
+            using var registerRequest = await Api.PostAgentHandshakeAsync(this.config.Value.Endpoint, this.config.Value.Account, model, token);
             if (false == string.IsNullOrWhiteSpace(registrationToken))
             {
                 registerRequest.Headers.TryAddWithoutValidation("Authorization", $"Bearer {registrationToken}");

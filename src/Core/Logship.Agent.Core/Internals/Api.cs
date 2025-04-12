@@ -31,7 +31,7 @@ namespace Logship.Agent.Core.Internals
             return message;
         }
 
-        public static async Task<HttpRequestMessage> PostAgentHandshakeAsync(string endpoint, AgentRegistrationRequestModel model, CancellationToken token)
+        public static async Task<HttpRequestMessage> PostAgentHandshakeAsync(string endpoint, Guid subscriptionId, AgentRegistrationRequestModel model, CancellationToken token)
         {
             var memoryStream = new MemoryStream();
             using (var writer = new Utf8JsonWriter(memoryStream))
@@ -40,7 +40,7 @@ namespace Logship.Agent.Core.Internals
             }
 
             memoryStream.Position = 0;
-            var message = new HttpRequestMessage(HttpMethod.Post, $"{endpoint}/agents/collector-client/handshake")
+            var message = new HttpRequestMessage(HttpMethod.Post, $"{endpoint}/agents/{subscriptionId}/collector-client/handshake")
             {
                 Content = new StreamContent(memoryStream)
             };
@@ -49,9 +49,9 @@ namespace Logship.Agent.Core.Internals
             return message;
         }
 
-        public static ValueTask<HttpRequestMessage> GetRefreshTokensAsync(string endpoint, CancellationToken token)
+        public static ValueTask<HttpRequestMessage> GetRefreshTokensAsync(string endpoint, Guid subscriptionId, CancellationToken token)
         {
-            var message = new HttpRequestMessage(HttpMethod.Get, $"{endpoint}/agents/collector-client/refresh");
+            var message = new HttpRequestMessage(HttpMethod.Get, $"{endpoint}/agents/{subscriptionId}/collector-client/refresh");
             message.Headers.TryAddWithoutValidation("Accept", "application/json");
             return ValueTask.FromResult(message);
         }
