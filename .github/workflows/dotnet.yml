@@ -46,3 +46,8 @@ jobs:
       run: dotnet test --no-build --verbosity normal
     - name: Publish
       run: dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r ${{ matrix.runtime }} -o out --self-contained true
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: logship-agent-${{ matrix.runtime }}
+        path: out/
