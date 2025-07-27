@@ -55,6 +55,10 @@ nunit-*.xml
 [Rr]eleasePS/
 dlldata.c
 
+# AI stuff until it proves useful
+.claude/
+CLAUDE.md
+
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
 
