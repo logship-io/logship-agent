@@ -1,4 +1,5 @@
 ﻿using Logship.Agent.Core.Configuration.Validators.Attributes;
+using Logship.Agent.Core.Services.Sources.Common.LogFile;
 using Microsoft.AspNetCore.Mvc.DataAnnotations;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Extensions.Configuration;
@@ -70,6 +71,11 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("Otlp")]
         [ConfigurationKeyName("Otlp")]
         public OtlpConfiguration? Otlp { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("LogFile")]
+        [ConfigurationKeyName("LogFile")]
+        public LogFileServiceConfiguration? LogFile { get; set; }
     }
 
     public class OtlpConfiguration : BaseInputConfiguration
