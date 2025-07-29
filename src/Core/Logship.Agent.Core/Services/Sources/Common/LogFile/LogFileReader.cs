@@ -33,8 +33,13 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
 
         public void SetPosition(long position)
         {
-            _currentPosition = position;
-            _fileStream?.Seek(position, SeekOrigin.Begin);
+            _currentPosition = Math.Max(0, position);
+            if (_fileStream != null)
+            {
+                var fileLength = _fileStream.Length;
+                _currentPosition = Math.Min(_currentPosition, fileLength);
+                _fileStream.Seek(_currentPosition, SeekOrigin.Begin);
+            }
         }
 
         public async IAsyncEnumerable<ProcessedLine> ReadLinesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -107,7 +112,8 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
                     lineNumber++;
                 }
 
-                _currentPosition = _fileStream.Position - remainingBytes.Length;
+                var newPosition = _fileStream.Position - remainingBytes.Length;
+                _currentPosition = Math.Max(0, newPosition);
             }
 
             // Flush any remaining multiline content
