@@ -48,6 +48,11 @@ namespace Logship.Agent.Core.Configuration
         public ProcOpenFilesConfiguration? ProcOpenFiles { get; set; }
 
         [ValidateObjectMembers]
+        [JsonPropertyName("Proc.Modules")]
+        [ConfigurationKeyName("Proc.Modules")]
+        public ProcModulesConfiguration? ProcModules { get; set; }
+
+        [ValidateObjectMembers]
         [JsonPropertyName("ProcessInformation")]
 		[ConfigurationKeyName("ProcessInformation")]
         public SystemProcessesConfiguration? Processes { get; set; }
@@ -163,6 +168,10 @@ namespace Logship.Agent.Core.Configuration
     }
 
     public sealed class ProcOpenFilesConfiguration : BaseIntervalInputConfiguration
+    {
+    }
+
+    public sealed class ProcModulesConfiguration : BaseIntervalInputConfiguration
     {
     }
 
