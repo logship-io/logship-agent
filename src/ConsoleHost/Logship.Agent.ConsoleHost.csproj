@@ -19,7 +19,6 @@
       <InvariantGlobalization>true</InvariantGlobalization>
       <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
       <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
-      <UserSecretsId>d6473e8a-2608-42e7-9440-9b88a648d920</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
