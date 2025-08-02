@@ -1,4 +1,8 @@
-﻿using System.Globalization;
+// <copyright file="MacAddressAspect.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Text;
 
@@ -40,3 +44,4 @@ namespace Logship.DeviceIdentifier.Components
         }
     }
 }
+

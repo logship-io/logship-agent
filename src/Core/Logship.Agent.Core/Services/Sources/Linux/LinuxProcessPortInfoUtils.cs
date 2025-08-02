@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Services.Sources.Common;
+// <copyright file="LinuxProcessPortInfoUtils.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Services.Sources.Common;
 
 namespace Logship.Agent.Core.Services.Sources.Linux
 {
@@ -152,3 +156,4 @@ namespace Logship.Agent.Core.Services.Sources.Linux
         }
     }
 }
+

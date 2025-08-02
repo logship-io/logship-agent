@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="NetworkInformationService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -112,3 +116,4 @@ namespace Logship.Agent.Core.Services.Sources.Common
 
     }
 }
+

@@ -1,3 +1,7 @@
+// <copyright file="ModelSourceGenerationContext.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 using System.Text.Json.Serialization;
 
 namespace Logship.Agent.Core.Internals.Models
@@ -10,3 +14,4 @@ namespace Logship.Agent.Core.Internals.Models
     {
     }
 }
+

@@ -1,4 +1,8 @@
-﻿using System;
+// <copyright file="IHandshakeAuth.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,3 +15,4 @@ namespace Logship.Agent.Core.Events
        Task SetInitialToken(string refreshToken, CancellationToken token);
     }
 }
+

@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="LocalStorage.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -77,3 +81,4 @@ namespace Logship.Agent.Core.Internals
         public static partial void TokenFileDoesNotExist(ILogger logger, string path);
     }
 }
+

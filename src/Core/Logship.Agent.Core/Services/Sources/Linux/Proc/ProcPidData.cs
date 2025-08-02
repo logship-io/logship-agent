@@ -1,4 +1,8 @@
-﻿using System.Diagnostics;
+// <copyright file="ProcPidData.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Diagnostics;
 
 namespace Logship.Agent.Core.Services.Sources.Linux.Proc
 {
@@ -7,3 +11,4 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
         public int TotalTicks => userTime + kernalTime;
     }
 }
+

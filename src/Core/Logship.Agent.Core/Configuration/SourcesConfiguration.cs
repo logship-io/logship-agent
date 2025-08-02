@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration.Validators.Attributes;
+// <copyright file="SourcesConfiguration.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration.Validators.Attributes;
 using Logship.Agent.Core.Services.Sources.Common.LogFile;
 using Microsoft.AspNetCore.Mvc.DataAnnotations;
 using Microsoft.Diagnostics.Tracing;
@@ -259,3 +263,4 @@ namespace Logship.Agent.Core.Configuration
         public List<string> Counters { get; set; } = new List<string>();
     }
 }
+

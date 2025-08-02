@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration.Validators.Attributes;
+// <copyright file="OutputConfiguration.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration.Validators.Attributes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
@@ -66,3 +70,4 @@ namespace Logship.Agent.Core.Configuration
         public string RegistrationToken { get; set; } = string.Empty;
     }
 }
+

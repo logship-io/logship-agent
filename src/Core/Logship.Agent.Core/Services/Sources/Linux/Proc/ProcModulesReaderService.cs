@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="ProcModulesReaderService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Records;
 using Microsoft.Extensions.Logging;
@@ -131,3 +135,4 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
         public static partial void LogInvalidModuleLine(ILogger logger, string line);
     }
 }
+

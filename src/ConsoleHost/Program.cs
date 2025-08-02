@@ -1,4 +1,8 @@
-﻿using Logship.Agent.ConsoleHost;
+// <copyright file="Program.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.ConsoleHost;
 using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Configuration.Validators;
 using Logship.Agent.Core.Services;

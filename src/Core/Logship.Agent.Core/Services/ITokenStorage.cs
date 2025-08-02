@@ -1,4 +1,8 @@
-﻿using System;
+// <copyright file="ITokenStorage.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,3 +19,4 @@ namespace Logship.Agent.Core.Services
         Task<string?> RetrieveTokenAsync(CancellationToken cancellationToken);
     }
 }
+

@@ -1,4 +1,8 @@
-﻿using System.Diagnostics;
+// <copyright file="BaseBashCommandAspect.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Diagnostics;
 
 namespace Logship.DeviceIdentifier.Components.Linux
 {
@@ -45,3 +49,4 @@ namespace Logship.DeviceIdentifier.Components.Linux
         }
     }
 }
+

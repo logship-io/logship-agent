@@ -1,4 +1,8 @@
-﻿using System.Text;
+// <copyright file="SimpleFormatter.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Text;
 
 namespace Logship.DeviceIdentifier.Formatter
 {
@@ -18,3 +22,4 @@ namespace Logship.DeviceIdentifier.Formatter
         }
     }
 }
+

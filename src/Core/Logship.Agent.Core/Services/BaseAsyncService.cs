@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
+// <copyright file="BaseAsyncService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -150,3 +154,4 @@ namespace Logship.Agent.Core.Services
         public static partial void FinishedProcess(ILogger logger, string process, string serviceName);
     }
 }
+

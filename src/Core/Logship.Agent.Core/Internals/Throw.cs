@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="Throw.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Microsoft.Extensions.Configuration;
 
 namespace Logship.Agent.Core.Internals
@@ -22,3 +26,4 @@ namespace Logship.Agent.Core.Internals
         }
     }
 }
+

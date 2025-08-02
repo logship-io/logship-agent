@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
+// <copyright file="BaseInputConfiguration.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,3 +19,4 @@ namespace Logship.Agent.Core.Configuration
         public bool Enabled { get; set; } = true;
     }
 }
+

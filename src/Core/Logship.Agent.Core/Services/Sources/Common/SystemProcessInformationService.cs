@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="SystemProcessInformationService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Records;
 using Logship.Agent.Core.Services.Sources.Linux;
@@ -145,3 +149,4 @@ namespace Logship.Agent.Core.Services.Sources.Common
         }
     }
 }
+

@@ -1,4 +1,8 @@
-﻿using System.Diagnostics;
+// <copyright file="ProcHelpers.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Diagnostics;
 
 namespace Logship.Agent.Core.Services.Sources.Linux.Proc
 {
@@ -25,3 +29,4 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
         }
     }
 }
+

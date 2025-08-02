@@ -1,4 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+// <copyright file="PositiveTimeSpanAttribute.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.ComponentModel.DataAnnotations;
 
 namespace Logship.Agent.Core.Configuration.Validators.Attributes
 {
@@ -16,3 +20,4 @@ namespace Logship.Agent.Core.Configuration.Validators.Attributes
         }
     }
 }
+

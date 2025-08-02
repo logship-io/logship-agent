@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+// <copyright file="ProgramExtensions.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Logship.Agent.ConsoleHost
@@ -37,3 +41,4 @@ namespace Logship.Agent.ConsoleHost
 
     }
 }
+

@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="ServiceRegistration.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Inputs.Common;
 using Logship.Agent.Core.Internals;
@@ -70,3 +74,4 @@ namespace Logship.Agent.Core.Services
         }
     }
 }
+

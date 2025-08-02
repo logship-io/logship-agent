@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="AgentPushService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -50,3 +54,4 @@ namespace Logship.Agent.Core.Services
         public static partial void FlushError(ILogger logger, Exception exception);
     }
 }
+

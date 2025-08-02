@@ -1,3 +1,7 @@
+// <copyright file="LogFileServiceConfiguration.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 using Logship.Agent.Core.Configuration;
 using Microsoft.Extensions.Configuration;
 using System.ComponentModel.DataAnnotations;

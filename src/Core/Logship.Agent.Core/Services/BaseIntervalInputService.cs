@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="BaseIntervalInputService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Records;
 using Microsoft.Extensions.Logging;
@@ -41,3 +45,4 @@ namespace Logship.Agent.Core.Services
         protected abstract Task ExecuteSingleAsync(CancellationToken token);
     }
 }
+

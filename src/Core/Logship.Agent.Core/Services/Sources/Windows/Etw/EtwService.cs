@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="EtwService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Extensions.Logging;
@@ -102,3 +106,4 @@ namespace Logship.Agent.Core.Services.Sources.Windows.Etw
         public static partial void SessionError(ILogger logger, Exception exception);
     }
 }
+

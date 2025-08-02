@@ -1,3 +1,7 @@
+// <copyright file="TempDirectory.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 namespace Logship.Agent.FileBasedTests.Utility
 {
     internal sealed class TempDirectory : IDisposable

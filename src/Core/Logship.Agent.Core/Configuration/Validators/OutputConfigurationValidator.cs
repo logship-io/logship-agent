@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Options;
+// <copyright file="OutputConfigurationValidator.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Microsoft.Extensions.Options;
 
 namespace Logship.Agent.Core.Configuration.Validators
 {
@@ -7,3 +11,4 @@ namespace Logship.Agent.Core.Configuration.Validators
     {
     }
 }
+

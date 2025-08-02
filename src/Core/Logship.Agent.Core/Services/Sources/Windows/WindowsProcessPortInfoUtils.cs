@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Services.Sources.Common;
+// <copyright file="WindowsProcessPortInfoUtils.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Services.Sources.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
@@ -181,3 +185,4 @@ namespace Logship.Agent.Core.Services.Sources.Windows
         }
     }
 }
+

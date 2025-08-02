@@ -1,4 +1,8 @@
-﻿using Google.Protobuf.WellKnownTypes;
+// <copyright file="Extensions.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Google.Protobuf.WellKnownTypes;
 using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Internals;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -57,3 +61,4 @@ namespace Logship.Agent.Core.Services.Sources.Common.Otlp
         }
     }
 }
+

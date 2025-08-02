@@ -1,4 +1,8 @@
-﻿using System;
+// <copyright file="OperatingSystemAspect.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -23,3 +27,4 @@ namespace Logship.DeviceIdentifier.Components
         }
     }
 }
+

@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="InMemoryBuffer.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Records;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -89,3 +93,4 @@ namespace Logship.Agent.Core.Events
         public static partial void TraceDataRecordDropped(ILogger logger, int maximumBufferSize);
     }
 }
+
