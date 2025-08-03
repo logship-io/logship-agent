@@ -1,3 +1,7 @@
+// <copyright file="Api.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 using Logship.Agent.Core.Internals.Models;
 using Logship.Agent.Core.Records;
 using System;
@@ -57,3 +61,4 @@ namespace Logship.Agent.Core.Internals
         }
     }
 }
+

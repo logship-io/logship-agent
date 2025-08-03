@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Events;
+// <copyright file="ConsoleEventOutput.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Records;
 using Microsoft.Extensions.Logging;
 

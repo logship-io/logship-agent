@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="BaseConfiguredService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;

@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+// <copyright file="LogExtensions.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,3 +23,4 @@ namespace Logship.Agent.Core.Services
         public static partial void ServiceException(ILogger logger, string serviceName, bool exitOnException, Exception exception);
     }
 }
+

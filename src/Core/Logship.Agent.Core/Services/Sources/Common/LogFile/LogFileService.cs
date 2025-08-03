@@ -1,3 +1,7 @@
+// <copyright file="LogFileService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Records;

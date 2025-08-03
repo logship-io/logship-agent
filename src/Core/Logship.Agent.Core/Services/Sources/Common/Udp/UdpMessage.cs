@@ -1,4 +1,8 @@
-﻿using System.Text.Json.Serialization;
+// <copyright file="UdpMessage.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Text.Json.Serialization;
 
 namespace Logship.Agent.Core.Inputs.Common.Udp
 {
@@ -24,3 +28,4 @@ namespace Logship.Agent.Core.Inputs.Common.Udp
     {
     }
 }
+

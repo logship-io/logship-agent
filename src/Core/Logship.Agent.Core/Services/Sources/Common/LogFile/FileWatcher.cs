@@ -1,3 +1,7 @@
+// <copyright file="FileWatcher.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 

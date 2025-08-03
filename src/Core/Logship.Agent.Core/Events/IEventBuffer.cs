@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Internals;
+// <copyright file="IEventBuffer.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Records;
 
 namespace Logship.Agent.Core.Events
@@ -10,3 +14,4 @@ namespace Logship.Agent.Core.Events
         Task<IReadOnlyCollection<DataRecord>> NextAsync(CancellationToken token);
     }
 }
+

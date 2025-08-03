@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+// <copyright file="JournalHandle.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
 namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
@@ -42,3 +46,4 @@ namespace Logship.Agent.Core.Services.Sources.Linux.JournalCtl
         public static partial void JournalOpen(ILogger logger, int code);
     }
 }
+

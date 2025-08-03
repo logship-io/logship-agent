@@ -1,4 +1,8 @@
-﻿using Grpc.Core;
+// <copyright file="OtlpMetricsGrpcService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Grpc.Core;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Inputs.Common.Udp;
 using Logship.Agent.Core.Internals;
@@ -252,3 +256,4 @@ namespace Logship.Agent.Core.Services.Sources.Common.Otlp
         public static partial void MetricsMessage(ILogger logger);
     }
 }
+

@@ -1,4 +1,8 @@
-﻿using System.Text.Json.Serialization;
+// <copyright file="SourceGenerationContext.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Text.Json.Serialization;
 
 namespace Logship.Agent.Core.Configuration
 {
@@ -9,3 +13,4 @@ namespace Logship.Agent.Core.Configuration
     {
     }
 }
+

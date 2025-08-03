@@ -1,3 +1,7 @@
+// <copyright file="OutputAuthenticator.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Internals.Models;
@@ -152,3 +156,4 @@ namespace Logship.Agent.Core.Events
         public static partial void NoAccessToken(ILogger logger);
     }
 }
+

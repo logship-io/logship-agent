@@ -1,4 +1,8 @@
-﻿using System.Text.RegularExpressions;
+// <copyright file="DockerContainerIdAspect.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Text.RegularExpressions;
 
 namespace Logship.DeviceIdentifier.Components.Linux
 {
@@ -28,3 +32,4 @@ namespace Logship.DeviceIdentifier.Components.Linux
         }
     }
 }
+

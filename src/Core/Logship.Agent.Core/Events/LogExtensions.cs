@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+// <copyright file="LogExtensions.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Microsoft.Extensions.Logging;
 
 namespace Logship.Agent.Core.Events
 {
@@ -11,3 +15,4 @@ namespace Logship.Agent.Core.Events
         public static partial void BufferSize(ILogger logger, int maximumBufferSize);
     }
 }
+

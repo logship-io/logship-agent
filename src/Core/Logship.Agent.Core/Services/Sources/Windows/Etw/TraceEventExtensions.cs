@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Records;
+// <copyright file="TraceEventExtensions.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Records;
 using Microsoft.Diagnostics.Tracing;
 using System.Text;
 
@@ -93,3 +97,4 @@ namespace Logship.Agent.Core.Services.Sources.Windows.Etw
         }
     }
 }
+

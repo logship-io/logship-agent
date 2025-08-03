@@ -1,4 +1,8 @@
-﻿using System.Runtime.InteropServices;
+// <copyright file="Interop.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System.Runtime.InteropServices;
 
 namespace Logship.Agent.Core.Services.Sources.Linux
 {
@@ -153,3 +157,4 @@ namespace Logship.Agent.Core.Services.Sources.Linux
         }
     }
 }
+

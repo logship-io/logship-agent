@@ -1,4 +1,8 @@
-﻿using Logship.DeviceIdentifier.Formatter;
+// <copyright file="HashFormatter.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.DeviceIdentifier.Formatter;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -31,3 +35,4 @@ namespace Logship.Agent.DeviceIdentifier.Formatter
         }
     }
 }
+

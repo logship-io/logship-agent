@@ -1,4 +1,8 @@
-﻿using System;
+// <copyright file="ExtractResourceAttribute.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,3 +24,4 @@ namespace Logship.Agent.Core.Services.Sources.Common.Otlp
         public object DefaultValue { get; private set; }
     }
 }
+

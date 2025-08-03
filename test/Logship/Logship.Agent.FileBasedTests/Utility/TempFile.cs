@@ -1,4 +1,8 @@
-﻿
+// <copyright file="TempFile.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+
 using System.Text;
 
 namespace Logship.Agent.FileBasedTests.Utility
@@ -68,3 +72,4 @@ namespace Logship.Agent.FileBasedTests.Utility
         }
     }
 }
+

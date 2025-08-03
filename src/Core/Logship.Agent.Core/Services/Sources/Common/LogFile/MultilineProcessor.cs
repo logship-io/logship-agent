@@ -1,3 +1,7 @@
+// <copyright file="MultilineProcessor.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 using System.Text;
 using System.Text.RegularExpressions;
 

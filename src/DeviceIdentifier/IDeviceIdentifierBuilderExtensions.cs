@@ -1,4 +1,8 @@
-﻿using Logship.DeviceIdentifier.Formatter;
+// <copyright file="IDeviceIdentifierBuilderExtensions.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.DeviceIdentifier.Formatter;
 
 namespace Logship.DeviceIdentifier
 {
@@ -20,3 +24,4 @@ namespace Logship.DeviceIdentifier
 
     }
 }
+

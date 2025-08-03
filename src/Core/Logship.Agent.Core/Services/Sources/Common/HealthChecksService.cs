@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="HealthChecksService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Services;
 using Microsoft.Extensions.Logging;
@@ -215,3 +219,4 @@ namespace Logship.Agent.Core.Inputs.Common
         public static partial void Error(ILogger logger, Exception exception);
     }
 }
+

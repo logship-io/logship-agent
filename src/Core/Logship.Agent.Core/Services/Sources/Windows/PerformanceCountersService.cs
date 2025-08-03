@@ -1,3 +1,7 @@
+// <copyright file="PerformanceCountersService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
 
 using Logship.Agent.Core.Services;
 using Logship.Agent.Core.Records;
@@ -170,3 +174,4 @@ internal static partial class PerfLog
     [LoggerMessage(LogLevel.Information, "Fetched {Count} counters. Beginning counter uploads.")]
     public static partial void FetchedCounters(ILogger logger, int count);
 }
+

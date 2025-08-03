@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="ProcMemReaderService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Records;
 using Microsoft.Extensions.Logging;
@@ -218,3 +222,4 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
         public static partial void ProcStatException(ILogger logger, Exception exception);
     }
 }
+

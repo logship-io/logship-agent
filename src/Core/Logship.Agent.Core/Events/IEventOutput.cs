@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Records;
+// <copyright file="IEventOutput.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Records;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,3 +16,4 @@ namespace Logship.Agent.Core.Events
         Task<bool> SendAsync(IReadOnlyCollection<DataRecord> records, CancellationToken cancellationToken);
     }
 }
+

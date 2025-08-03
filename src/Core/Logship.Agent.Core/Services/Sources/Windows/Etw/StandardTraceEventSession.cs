@@ -1,4 +1,8 @@
-﻿using Microsoft.Diagnostics.Tracing.Session;
+// <copyright file="StandardTraceEventSession.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Microsoft.Diagnostics.Tracing.Session;
 using Microsoft.Diagnostics.Tracing;
 using Logship.Agent.Core.Records;
 using Logship.Agent.Core.Services.Sources.Windows.Etw;
@@ -117,3 +121,4 @@ namespace Logship.Agent.Core.Services.Sources.Windows.Etw
         }
     }
 }
+

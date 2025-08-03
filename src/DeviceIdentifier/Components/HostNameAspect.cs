@@ -1,4 +1,8 @@
-﻿namespace Logship.DeviceIdentifier.Components
+// <copyright file="HostNameAspect.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+namespace Logship.DeviceIdentifier.Components
 {
     public sealed class HostNameAspect : BaseSynchronousAspect
     {
@@ -15,3 +19,4 @@
         }
     }
 }
+

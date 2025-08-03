@@ -1,4 +1,8 @@
-﻿using Grpc.Core;
+// <copyright file="OtlpLogsGrpcService.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Grpc.Core;
 using Logship.Agent.Core.Events;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -94,3 +98,4 @@ namespace Logship.Agent.Core.Services.Sources.Common.Otlp
 
     }
 }
+

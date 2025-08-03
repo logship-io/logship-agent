@@ -1,4 +1,8 @@
-﻿using System;
+// <copyright file="ActivityPathDecoder.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using System;
 using System.Diagnostics;
 using System.Text;
 
@@ -183,3 +187,4 @@ namespace Logship.Agent.Core.Services.Sources.Windows.Etw
         }
     }
 }
+

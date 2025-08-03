@@ -1,4 +1,8 @@
-﻿using Logship.Agent.Core.Configuration;
+// <copyright file="EventSink.cs" company="Logship LLC">
+// Copyright (c) Logship LLC. All rights reserved.
+// </copyright>
+
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Records;
 using Microsoft.Extensions.Logging;
@@ -160,3 +164,4 @@ namespace Logship.Agent.Core.Events
         public static partial void FlushFailed(ILogger logger, int count);
     }
 }
+
