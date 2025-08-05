@@ -58,7 +58,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
             }
         }
 
-        private async Task ProcessFilesAsync(CancellationToken token)
+        public async Task ProcessFilesAsync(CancellationToken token)
         {
             if (_fileWatcher.ShouldRescanFiles())
             {

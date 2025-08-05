@@ -42,10 +42,10 @@ namespace Logship.Agent.FileBasedTests.Utility
             await stream.FlushAsync(token);
         }
 
-        public async Task Truncate()
+        public Task Truncate(CancellationToken token)
         {
             using var stream = this.FileInfo.Open(FileMode.Truncate, FileAccess.Write);
-            await stream.FlushAsync();
+            return stream.FlushAsync(token);
         }
 
         public void Dispose()

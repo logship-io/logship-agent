@@ -21,17 +21,18 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldReadSingleLineFromFile()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
             var expectedContent = "2023-01-01 10:00:00 INFO Application started";
-            await tempFile.AppendLine(expectedContent, Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine(expectedContent, Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
-            using var service = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            using var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(1, eventBuffer.Records.Count);
@@ -44,6 +45,7 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldReadMultipleLines()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
             var lines = new[]
@@ -55,15 +57,15 @@ namespace Logship.Agent.FileBasedTests.LogFiles
 
             foreach (var line in lines)
             {
-                await tempFile.AppendLine(line, Encoding.UTF8, CancellationToken.None);
+                await tempFile.AppendLine(line, Encoding.UTF8, cancellationToken);
             }
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
-            using var service = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            using var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(3, eventBuffer.Records.Count);
@@ -74,21 +76,28 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldHandleFileAppend()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
-            await tempFile.AppendLine("Initial line", Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine("Initial line", Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
-            using var service = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(1));
-
-            var initialCount = eventBuffer.Records.Count;
+            int initialCount;
+            using (var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true))
+            {
+                await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+                initialCount = eventBuffer.Records.Count;
+            }
 
             // Act - append more content
-            await tempFile.AppendLine("Appended line", Encoding.UTF8, CancellationToken.None);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            await tempFile.AppendLine("Appended line", Encoding.UTF8, cancellationToken);
+            
+            using (var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true))
+            {
+                await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+            }
 
             Assert.IsTrue(eventBuffer.Records.Count > initialCount, $"Should capture appended content. Initial: {initialCount}, Final: {eventBuffer.Records.Count}");
 
@@ -101,22 +110,29 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldHandleFileRotation()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
-            await tempFile.AppendLine("Original content", Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine("Original content", Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
-            using var service = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(1));
-
-            var initialCount = eventBuffer.Records.Count;
+            int initialCount;
+            using (var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true))
+            {
+                await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+                initialCount = eventBuffer.Records.Count;
+            }
 
             // Act - simulate file rotation by creating new file with same name
             tempFile.FileInfo.Delete();
-            await tempFile.AppendLine("New file content after rotation", Encoding.UTF8, CancellationToken.None);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            await tempFile.AppendLine("New file content after rotation", Encoding.UTF8, cancellationToken);
+            
+            using (var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true))
+            {
+                await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+            }
 
             // Assert
             Assert.IsTrue(eventBuffer.Records.Count > initialCount, "Should capture content from rotated file");
@@ -128,24 +144,30 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldHandleMultipleFileChanges()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
-            await tempFile.AppendLine("Line 1", Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine("Line 1", Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
-            using var service = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(1));
+            using (var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true))
+            {
+                await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+            }
 
             // Act - make multiple rapid changes
-            await tempFile.AppendLine("Line 2", Encoding.UTF8, CancellationToken.None);
-            await Task.Delay(100);
-            await tempFile.AppendLine("Line 3", Encoding.UTF8, CancellationToken.None);
-            await Task.Delay(100);
-            await tempFile.AppendLine("Line 4", Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine("Line 2", Encoding.UTF8, cancellationToken);
+            await Task.Delay(100, cancellationToken);
+            await tempFile.AppendLine("Line 3", Encoding.UTF8, cancellationToken);
+            await Task.Delay(100, cancellationToken);
+            await tempFile.AppendLine("Line 4", Encoding.UTF8, cancellationToken);
             
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(3));
+            using (var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true))
+            {
+                await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+            }
 
             // Assert
             Assert.IsTrue(eventBuffer.Records.Count >= 4, $"Should capture at least all lines from multiple changes. Got: {eventBuffer.Records.Count}");
@@ -159,23 +181,30 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldHandleFileTruncation()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
-            await tempFile.AppendLine("Line 1", Encoding.UTF8, CancellationToken.None);
-            await tempFile.AppendLine("Line 2", Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine("Line 1", Encoding.UTF8, cancellationToken);
+            await tempFile.AppendLine("Line 2", Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
-            using var service = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(1));
-
-            var initialCount = eventBuffer.Records.Count;
+            int initialCount;
+            using (var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true))
+            {
+                await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+                initialCount = eventBuffer.Records.Count;
+            }
 
             // Act - truncate file and add new content
-            await tempFile.Truncate();
-            await tempFile.AppendLine("New line after truncation", Encoding.UTF8, CancellationToken.None);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            await tempFile.Truncate(cancellationToken);
+            await tempFile.AppendLine("New line after truncation", Encoding.UTF8, cancellationToken);
+            
+            using (var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true))
+            {
+                await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+            }
 
             // Assert
             Assert.IsTrue(eventBuffer.Records.Count > initialCount, "Should capture content after truncation");
@@ -187,20 +216,21 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldReadMultilineJavaStackTrace()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
-            await tempFile.AppendLine("2023-01-01 10:00:00 ERROR Exception occurred", Encoding.UTF8, CancellationToken.None);
-            await tempFile.AppendLine("    at com.example.Service.method(Service.java:123)", Encoding.UTF8, CancellationToken.None);
-            await tempFile.AppendLine("    at com.example.Controller.handle(Controller.java:456)", Encoding.UTF8, CancellationToken.None);
-            await tempFile.AppendLine("    Caused by: java.lang.RuntimeException: Test error", Encoding.UTF8, CancellationToken.None);
-            await tempFile.AppendLine("2023-01-01 10:00:01 INFO Next log entry", Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine("2023-01-01 10:00:00 ERROR Exception occurred", Encoding.UTF8, cancellationToken);
+            await tempFile.AppendLine("    at com.example.Service.method(Service.java:123)", Encoding.UTF8, cancellationToken);
+            await tempFile.AppendLine("    at com.example.Controller.handle(Controller.java:456)", Encoding.UTF8, cancellationToken);
+            await tempFile.AppendLine("    Caused by: java.lang.RuntimeException: Test error", Encoding.UTF8, cancellationToken);
+            await tempFile.AppendLine("2023-01-01 10:00:01 INFO Next log entry", Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
-            using var service = CreateLogFileServiceWithMultiline(tempFile.FileInfo.FullName, @"^\d{4}-\d{2}-\d{2}", eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(3));
+            using var serviceWrapper = CreateLogFileServiceWithMultiline(tempFile.FileInfo.FullName, @"^\d{4}-\d{2}-\d{2}", eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.IsTrue(eventBuffer.Records.Count >= 2, $"Should have at least 2 multiline entries, but got {eventBuffer.Records.Count}");
@@ -219,23 +249,24 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldMatchGlobPatterns()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempDir = new TempDirectory();
             using var logFile = new TempFile(Path.Combine(tempDir.Path, "app.log"));
             using var txtFile = new TempFile(Path.Combine(tempDir.Path, "data.txt"));
             using var otherFile = new TempFile(Path.Combine(tempDir.Path, "config.json"));
 
-            await logFile.AppendLine("Log entry", Encoding.UTF8, CancellationToken.None);
-            await txtFile.AppendLine("Text entry", Encoding.UTF8, CancellationToken.None);
-            await otherFile.AppendLine("JSON entry", Encoding.UTF8, CancellationToken.None);
+            await logFile.AppendLine("Log entry", Encoding.UTF8, cancellationToken);
+            await txtFile.AppendLine("Text entry", Encoding.UTF8, cancellationToken);
+            await otherFile.AppendLine("JSON entry", Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
             var patterns = new[] { "*.log", "*.txt" };
-            using var service = CreateLogFileServiceWithPatterns(patterns, tempDir.Path, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(3));
+            using var serviceWrapper = CreateLogFileServiceWithPatterns(patterns, tempDir.Path, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(2, eventBuffer.Records.Count, "Should only capture .log and .txt files");
@@ -247,13 +278,14 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldExcludeFilesByPattern()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempDir = new TempDirectory();
             using var logFile = new TempFile(Path.Combine(tempDir.Path, "app.log"));
             using var debugFile = new TempFile(Path.Combine(tempDir.Path, "debug.log"));
 
-            await logFile.AppendLine("App log entry", Encoding.UTF8, CancellationToken.None);
-            await debugFile.AppendLine("Debug log entry", Encoding.UTF8, CancellationToken.None);
+            await logFile.AppendLine("App log entry", Encoding.UTF8, cancellationToken);
+            await debugFile.AppendLine("Debug log entry", Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
@@ -261,8 +293,8 @@ namespace Logship.Agent.FileBasedTests.LogFiles
             // Act
             var includePatterns = new[] { "*.log" };
             var excludePatterns = new[] { "debug.log" };
-            using var service = CreateLogFileServiceWithPatternsAndExcludes(includePatterns, excludePatterns, tempDir.Path, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(3));
+            using var serviceWrapper = CreateLogFileServiceWithPatternsAndExcludes(includePatterns, excludePatterns, tempDir.Path, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(1, eventBuffer.Records.Count, "Should exclude debug.log");
@@ -273,17 +305,18 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldHandleUtf8Encoding()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
             var content = "Üñíçødé tëxt with UTF-8 characters: 中文 العربية";
-            await tempFile.Append(content + Environment.NewLine, Encoding.UTF8, CancellationToken.None);
+            await tempFile.Append(content + Environment.NewLine, Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
-            using var service = CreateLogFileServiceWithEncoding(tempFile.FileInfo.FullName, "utf-8", eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            using var serviceWrapper = CreateLogFileServiceWithEncoding(tempFile.FileInfo.FullName, "utf-8", eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(1, eventBuffer.Records.Count);
@@ -294,17 +327,18 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldHandleUnicodeCharacters()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
             var content = "Unicode characters: こんにちは Привет العربية";
-            await tempFile.Append(content + Environment.NewLine, Encoding.UTF8, CancellationToken.None);
+            await tempFile.Append(content + Environment.NewLine, Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act - Test Unicode content with UTF-8 encoding
-            using var service = CreateLogFileServiceWithEncoding(tempFile.FileInfo.FullName, "utf-8", eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            using var serviceWrapper = CreateLogFileServiceWithEncoding(tempFile.FileInfo.FullName, "utf-8", eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(1, eventBuffer.Records.Count);
@@ -315,17 +349,18 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldHandleAsciiEncoding()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
             var content = "ASCII only content 123 ABC";
-            await tempFile.Append(content + Environment.NewLine, Encoding.ASCII, CancellationToken.None);
+            await tempFile.Append(content + Environment.NewLine, Encoding.ASCII, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
-            using var service = CreateLogFileServiceWithEncoding(tempFile.FileInfo.FullName, "ascii", eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            using var serviceWrapper = CreateLogFileServiceWithEncoding(tempFile.FileInfo.FullName, "ascii", eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(1, eventBuffer.Records.Count);
@@ -336,17 +371,18 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldFallbackToUtf8OnInvalidEncoding()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
             var content = "Test content with fallback encoding";
-            await tempFile.Append(content + Environment.NewLine, Encoding.UTF8, CancellationToken.None);
+            await tempFile.Append(content + Environment.NewLine, Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
-            using var service = CreateLogFileServiceWithEncoding(tempFile.FileInfo.FullName, "invalid-encoding", eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            using var serviceWrapper = CreateLogFileServiceWithEncoding(tempFile.FileInfo.FullName, "invalid-encoding", eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(1, eventBuffer.Records.Count);
@@ -357,17 +393,18 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldTruncateLongLines()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
             var longLine = new string('A', 2_000_000); // 2MB line
-            await tempFile.AppendLine(longLine, Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine(longLine, Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
-            using var service = CreateLogFileServiceWithMaxLineBytes(tempFile.FileInfo.FullName, 1024, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            using var serviceWrapper = CreateLogFileServiceWithMaxLineBytes(tempFile.FileInfo.FullName, 1024, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(1, eventBuffer.Records.Count);
@@ -379,16 +416,17 @@ namespace Logship.Agent.FileBasedTests.LogFiles
         [TestMethod]
         public async Task ShouldIncludeFileMetadata()
         {
+            CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
-            await tempFile.AppendLine("Test line", Encoding.UTF8, CancellationToken.None);
+            await tempFile.AppendLine("Test line", Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
             var logger = new TestLogger<LogFileService>();
 
             // Act
-            using var service = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
-            await RunServiceForDuration(service, TimeSpan.FromSeconds(2));
+            using var serviceWrapper = CreateLogFileService(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
 
             // Assert
             Assert.AreEqual(1, eventBuffer.Records.Count);
@@ -402,10 +440,39 @@ namespace Logship.Agent.FileBasedTests.LogFiles
             Assert.IsTrue(record.Data.ContainsKey("ModifiedTime"));
         }
 
-        private static LogFileService CreateLogFileService(string filePath, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
+        private sealed class TestServiceWrapper : IDisposable
+        {
+            public LogFileService Service { get; }
+            public string TempDirectoryPath { get; }
+
+            public TestServiceWrapper(LogFileService service, string tempDirectoryPath)
+            {
+                Service = service;
+                TempDirectoryPath = tempDirectoryPath;
+            }
+
+            public void Dispose()
+            {
+                Service?.Dispose();
+                if (Directory.Exists(TempDirectoryPath))
+                {
+                    try
+                    {
+                        Directory.Delete(TempDirectoryPath, true);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
+            }
+        }
+
+        private static TestServiceWrapper CreateLogFileService(string filePath, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
         {
             var workingDirectory = Path.GetDirectoryName(filePath)!;
             var relativePath = Path.GetFileName(filePath);
+            var tempDirectoryPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}");
 
             var config = new LogFileServiceConfiguration
             {
@@ -418,15 +485,17 @@ namespace Logship.Agent.FileBasedTests.LogFiles
 
             var sourcesConfig = new SourcesConfiguration { LogFile = config };
             var options = Options.Create(sourcesConfig);
-            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}") });
+            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = tempDirectoryPath });
 
-            return new LogFileService(options, outputOptions, eventBuffer, logger);
+            var service = new LogFileService(options, outputOptions, eventBuffer, logger);
+            return new TestServiceWrapper(service, tempDirectoryPath);
         }
 
-        private static LogFileService CreateLogFileServiceWithMultiline(string filePath, string startPattern, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
+        private static TestServiceWrapper CreateLogFileServiceWithMultiline(string filePath, string startPattern, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
         {
             var workingDirectory = Path.GetDirectoryName(filePath)!;
             var relativePath = Path.GetFileName(filePath);
+            var tempDirectoryPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}");
 
             var config = new LogFileServiceConfiguration
             {
@@ -445,13 +514,16 @@ namespace Logship.Agent.FileBasedTests.LogFiles
 
             var sourcesConfig = new SourcesConfiguration { LogFile = config };
             var options = Options.Create(sourcesConfig);
-            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}") });
+            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = tempDirectoryPath });
 
-            return new LogFileService(options, outputOptions, eventBuffer, logger);
+            var service = new LogFileService(options, outputOptions, eventBuffer, logger);
+            return new TestServiceWrapper(service, tempDirectoryPath);
         }
 
-        private static LogFileService CreateLogFileServiceWithPatterns(string[] patterns, string workingDirectory, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
+        private static TestServiceWrapper CreateLogFileServiceWithPatterns(string[] patterns, string workingDirectory, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
         {
+            var tempDirectoryPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}");
+            
             var config = new LogFileServiceConfiguration
             {
                 Enabled = true,
@@ -463,13 +535,16 @@ namespace Logship.Agent.FileBasedTests.LogFiles
 
             var sourcesConfig = new SourcesConfiguration { LogFile = config };
             var options = Options.Create(sourcesConfig);
-            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}") });
+            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = tempDirectoryPath });
 
-            return new LogFileService(options, outputOptions, eventBuffer, logger);
+            var service = new LogFileService(options, outputOptions, eventBuffer, logger);
+            return new TestServiceWrapper(service, tempDirectoryPath);
         }
 
-        private static LogFileService CreateLogFileServiceWithPatternsAndExcludes(string[] includePatterns, string[] excludePatterns, string workingDirectory, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
+        private static TestServiceWrapper CreateLogFileServiceWithPatternsAndExcludes(string[] includePatterns, string[] excludePatterns, string workingDirectory, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
         {
+            var tempDirectoryPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}");
+            
             var config = new LogFileServiceConfiguration
             {
                 Enabled = true,
@@ -482,15 +557,17 @@ namespace Logship.Agent.FileBasedTests.LogFiles
 
             var sourcesConfig = new SourcesConfiguration { LogFile = config };
             var options = Options.Create(sourcesConfig);
-            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}") });
+            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = tempDirectoryPath });
 
-            return new LogFileService(options, outputOptions, eventBuffer, logger);
+            var service = new LogFileService(options, outputOptions, eventBuffer, logger);
+            return new TestServiceWrapper(service, tempDirectoryPath);
         }
 
-        private static LogFileService CreateLogFileServiceWithEncoding(string filePath, string encoding, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
+        private static TestServiceWrapper CreateLogFileServiceWithEncoding(string filePath, string encoding, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
         {
             var workingDirectory = Path.GetDirectoryName(filePath)!;
             var relativePath = Path.GetFileName(filePath);
+            var tempDirectoryPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}");
 
             var config = new LogFileServiceConfiguration
             {
@@ -504,15 +581,17 @@ namespace Logship.Agent.FileBasedTests.LogFiles
 
             var sourcesConfig = new SourcesConfiguration { LogFile = config };
             var options = Options.Create(sourcesConfig);
-            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}") });
+            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = tempDirectoryPath });
 
-            return new LogFileService(options, outputOptions, eventBuffer, logger);
+            var service = new LogFileService(options, outputOptions, eventBuffer, logger);
+            return new TestServiceWrapper(service, tempDirectoryPath);
         }
 
-        private static LogFileService CreateLogFileServiceWithMaxLineBytes(string filePath, int maxLineBytes, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
+        private static TestServiceWrapper CreateLogFileServiceWithMaxLineBytes(string filePath, int maxLineBytes, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool startAtBeginning = false)
         {
             var workingDirectory = Path.GetDirectoryName(filePath)!;
             var relativePath = Path.GetFileName(filePath);
+            var tempDirectoryPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}");
 
             var config = new LogFileServiceConfiguration
             {
@@ -526,27 +605,12 @@ namespace Logship.Agent.FileBasedTests.LogFiles
 
             var sourcesConfig = new SourcesConfiguration { LogFile = config };
             var options = Options.Create(sourcesConfig);
-            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}") });
+            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = tempDirectoryPath });
 
-            return new LogFileService(options, outputOptions, eventBuffer, logger);
+            var service = new LogFileService(options, outputOptions, eventBuffer, logger);
+            return new TestServiceWrapper(service, tempDirectoryPath);
         }
 
-        private static async Task RunServiceForDuration(LogFileService service, TimeSpan duration)
-        {
-            using var cts = new CancellationTokenSource(duration);
-            await service.StartAsync(cts.Token);
-
-            try
-            {
-                await Task.Delay(duration, cts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected when cancellation token expires
-            }
-
-            await service.StopAsync(CancellationToken.None);
-        }
     }
 
     internal sealed class TestEventBuffer : IEventBuffer
