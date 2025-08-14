@@ -64,10 +64,13 @@ namespace Logship.Agent.Core.Services.Sources.Common.Nmap
                     StartInfo = new System.Diagnostics.ProcessStartInfo
                     {
                         FileName = "nmap",
-                        Arguments = $"-T4 -n -oX - {subnet}",
+                        Arguments = $"{Config.NmapArgs} -oX - {subnet}",
                         RedirectStandardOutput = true,
                         UseShellExecute = false,
-                        CreateNoWindow = true
+                        CreateNoWindow = true,
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+                        RedirectStandardError = true,
+                        RedirectStandardInput = true,
                     }
                 };
 
@@ -75,6 +78,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.Nmap
                 try
                 {
                     process.Start();
+                    process.StandardInput.Close();
                     output = await process.StandardOutput.ReadToEndAsync(token);
                     await process.WaitForExitAsync(token);
                 }

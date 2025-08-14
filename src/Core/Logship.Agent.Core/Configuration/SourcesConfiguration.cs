@@ -189,6 +189,10 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("subnets")]
         [ConfigurationKeyName("subnets")]
         public List<string> Subnets { get; set; } = new List<string>();
+
+        [JsonPropertyName("nmapArgs")]
+        [ConfigurationKeyName("nmapArgs")]
+        public string NmapArgs { get; set; } = "-T4 -n";
     }
 
     public sealed class EtwProviderConfiguration
