@@ -85,6 +85,11 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("LogFile")]
         [ConfigurationKeyName("LogFile")]
         public LogFileServiceConfiguration? LogFile { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("NmapScanner")]
+        [ConfigurationKeyName("NmapScanner")]
+        public NmapScannerConfiguration? NmapScanner { get; set; }
     }
 
     public class OtlpConfiguration : BaseInputConfiguration
@@ -177,6 +182,13 @@ namespace Logship.Agent.Core.Configuration
 
     public sealed class ProcModulesConfiguration : BaseIntervalInputConfiguration
     {
+    }
+
+    public sealed class NmapScannerConfiguration : BaseIntervalInputConfiguration
+    {
+        [JsonPropertyName("subnets")]
+        [ConfigurationKeyName("subnets")]
+        public List<string> Subnets { get; set; } = new List<string>();
     }
 
     public sealed class EtwProviderConfiguration
