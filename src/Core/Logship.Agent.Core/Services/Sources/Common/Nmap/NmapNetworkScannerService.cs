@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Text;
 using System.Xml.Linq;
 
 namespace Logship.Agent.Core.Services.Sources.Common.Nmap
@@ -46,7 +47,10 @@ namespace Logship.Agent.Core.Services.Sources.Common.Nmap
                             continue;
                         }
 
-                        subnetsToScan.Add($"{unicast.Address}/{unicast.PrefixLength}");
+                        subnetsToScan.Add(new NmapSubnetConfiguration
+                        {
+                            Subnet = $"{unicast.Address}/{unicast.PrefixLength}",
+                        });
                     }
                 }
             }
@@ -54,7 +58,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.Nmap
             // Log the snubnets that will be scanned
             foreach (var subnet in subnetsToScan)
             {
-                NmapNetworkScannerLog.NmapScanningSubnet(this.Logger, "Scanning subnet", subnet);
+                NmapNetworkScannerLog.NmapScanningSubnet(this.Logger, "Scanning subnet", subnet.Subnet!);
             }
 
             foreach (var subnet in subnetsToScan)
@@ -64,7 +68,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.Nmap
                     StartInfo = new System.Diagnostics.ProcessStartInfo
                     {
                         FileName = "nmap",
-                        Arguments = $"{Config.NmapArgs} -oX - {subnet}",
+                        Arguments = $"{subnet.NmapArgs} -oX - {subnet.Subnet}",
                         RedirectStandardOutput = true,
                         UseShellExecute = false,
                         CreateNoWindow = true,
@@ -74,23 +78,42 @@ namespace Logship.Agent.Core.Services.Sources.Common.Nmap
                     }
                 };
 
-                string output;
+                string output = "";
+                string error = "";
                 try
                 {
                     process.Start();
                     process.StandardInput.Close();
-                    output = await process.StandardOutput.ReadToEndAsync(token);
-                    await process.WaitForExitAsync(token);
+
+                    var inputTask = Task.Run(async () =>
+                    {
+                        output = await process.StandardOutput.ReadToEndAsync(token);
+                    }, token);
+                    var errorTask = Task.Run(async () =>
+                    {
+                        error = await process.StandardError.ReadToEndAsync(token);
+                    }, token);
+                    var processWait = Task.Run(async () =>
+                    {
+                        await process.WaitForExitAsync(token);
+                    }, token);
+
+                    await Task.WhenAll(inputTask, errorTask, processWait);                    
                 }
                 catch (Exception)
                 {
-                    NmapNetworkScannerLog.NmapScanFailed(this.Logger, subnet, -1);
+                    NmapNetworkScannerLog.NmapScanFailed(this.Logger, subnet.Subnet!, -1);
                     continue;
+                }
+
+                if (false == string.IsNullOrWhiteSpace(error))
+                {
+                    NmapNetworkScannerLog.NmapScanFailed(this.Logger, error, -1);
                 }
 
                 if (process.ExitCode != 0)
                 {
-                    NmapNetworkScannerLog.NmapScanFailed(this.Logger, subnet, process.ExitCode);
+                    NmapNetworkScannerLog.NmapScanFailed(this.Logger, subnet.Subnet!, process.ExitCode);
                     continue;
                 }
 
