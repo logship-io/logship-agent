@@ -186,6 +186,10 @@ namespace Logship.Agent.Core.Configuration
 
     public sealed class NmapScannerConfiguration : BaseIntervalInputConfiguration
     {
+        [JsonPropertyName("shellExec")]
+        [ConfigurationKeyName("shellExec")]
+        public bool ShellExec { get; set; } = false;
+
         [JsonPropertyName("subnets")]
         [ConfigurationKeyName("subnets")]
         public List<NmapSubnetConfiguration> Subnets { get; set; } = new List<NmapSubnetConfiguration>();

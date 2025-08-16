@@ -70,7 +70,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.Nmap
                         FileName = "nmap",
                         Arguments = $"{subnet.NmapArgs} -oX - {subnet.Subnet}",
                         RedirectStandardOutput = true,
-                        UseShellExecute = false,
+                        UseShellExecute = Config.ShellExec,
                         CreateNoWindow = true,
                         WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
                         RedirectStandardError = true,
