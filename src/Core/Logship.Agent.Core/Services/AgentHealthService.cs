@@ -4,7 +4,6 @@
 
 using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -28,7 +27,7 @@ namespace Logship.Agent.Core.Services
         {
             while (false == token.IsCancellationRequested)
             {
-                this.sink.Add(new Records.DataRecord("Logship.Agent.Uptime", DateTimeOffset.UtcNow, new Dictionary<string, object>
+                this.sink.Add(new Records.DataRecord("logship.agent.uptime", DateTimeOffset.UtcNow, new Dictionary<string, object>
                 {
                     { "machine", Environment.MachineName },
                     { "startTime", this.startupTime.ToString("O") },

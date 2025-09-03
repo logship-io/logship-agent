@@ -6,7 +6,6 @@ using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.IO;
 
 namespace Logship.Agent.Core.Internals
 {
@@ -68,16 +67,16 @@ namespace Logship.Agent.Core.Internals
 
     internal sealed partial class LocalStorageLog
     {
-        [LoggerMessage(LogLevel.Information, "An existing token file at \"{Path}\" will be deleted.")]
+        [LoggerMessage(LogLevel.Debug, "An existing token file at \"{Path}\" will be deleted.")]
         public static partial void DeleteExistingToken(ILogger logger, string path);
 
-        [LoggerMessage(LogLevel.Information, "Creating a token file at \"{Path}\".")]
+        [LoggerMessage(LogLevel.Debug, "Creating a token file at \"{Path}\".")]
         public static partial void StoreToken(ILogger logger, string path);
 
-        [LoggerMessage(LogLevel.Information, "Retrieved a token file at \"{Path}\".")]
+        [LoggerMessage(LogLevel.Debug, "Retrieved a token file at \"{Path}\".")]
         public static partial void RetrievedToken(ILogger logger, string path);
 
-        [LoggerMessage(LogLevel.Information, "A token file at \"{Path}\" does not exist.")]
+        [LoggerMessage(LogLevel.Debug, "A token file at \"{Path}\" does not exist.")]
         public static partial void TokenFileDoesNotExist(ILogger logger, string path);
     }
 }
