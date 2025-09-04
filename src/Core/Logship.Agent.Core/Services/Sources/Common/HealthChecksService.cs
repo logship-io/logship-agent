@@ -113,7 +113,7 @@ namespace Logship.Agent.Core.Inputs.Common
             string body = state.ResponseMessage != null && state.Target.IncludeResponseHeaders
                 ? await state.ResponseMessage.Content.ReadAsStringAsync(token)
                 : string.Empty;
-            this.sink.Add(new Records.DataRecord("Logship.Agent.HealthChecks", DateTimeOffset.UtcNow, new Dictionary<string, object>
+            this.sink.Add(new Records.DataRecord("logship.agent.healthchecks", DateTimeOffset.UtcNow, new Dictionary<string, object>
             {
                 { "machine", Environment.MachineName },
                 { "endpoint", state.Target.Endpoint.ToString() },
@@ -129,7 +129,7 @@ namespace Logship.Agent.Core.Inputs.Common
 
         private Task PushException(HealthCheckState state, CancellationToken token)
         {
-            this.sink.Add(new Records.DataRecord("Logship.Agent.HealthChecks.Exceptions", DateTimeOffset.UtcNow, new Dictionary<string, object>
+            this.sink.Add(new Records.DataRecord("logship.agent.healthchecks.exceptions", DateTimeOffset.UtcNow, new Dictionary<string, object>
             {
                 { "machine", Environment.MachineName },
                 { "endpoint", state.Target.Endpoint.ToString() },

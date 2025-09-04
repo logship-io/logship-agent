@@ -32,18 +32,19 @@ internal sealed class Program
 
         var watch = Stopwatch.StartNew();
         var builder = WebApplication.CreateSlimBuilder(args);
-        
+
         builder.WebHost.UseKestrelCore().ConfigureKestrel(_ =>
         {
             var enabled = builder.Configuration.GetValue<bool>("Sources:Otlp:enabled", false);
             if (enabled)
             {
                 var port = builder.Configuration.GetValue<int>("Sources:Otlp:port", 4317);
-                _.ListenAnyIP(port, listenOptions => {
+                _.ListenAnyIP(port, listenOptions =>
+                {
                     listenOptions.Protocols = HttpProtocols.Http2;
                 });
             }
-            
+
         });
         builder.Logging
             .Configure(_ =>
@@ -58,7 +59,7 @@ internal sealed class Program
             .AddSystemd()
             .AddWindowsService(_ =>
             {
-                _.ServiceName = "Logship.Agent";
+                _.ServiceName = "logship.agent";
             })
             .Configure<OutputConfiguration>(builder.Configuration.GetSection("Output"))
             .Configure<SourcesConfiguration>(builder.Configuration.GetSection("Sources"))
@@ -100,8 +101,8 @@ internal sealed class Program
 
         try
         {
-            var handshake = app.Services.GetRequiredService<AgentHandshakeService>();
-            await handshake.PerformHandshakeAsync(tokenSource.Token);
+            var handshake = app.Services.GetRequiredService<AgentAuthenticationService>();
+            await handshake.PerformRefreshAsync(tokenSource.Token);
 
             await app.StartAsync(tokenSource.Token);
             ProgramExtensions.Log_AgentStarted(logger, watch.ElapsedMilliseconds);

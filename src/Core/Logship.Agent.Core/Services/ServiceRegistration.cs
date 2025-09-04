@@ -29,7 +29,7 @@ namespace Logship.Agent.Core.Services
                 .AddSingleton<ITokenStorage, LocalStorage>()
                 .AddSingleton<OutputAuthenticator>()
                 .AddTransient<IOutputAuth>(_ => _.GetRequiredService<OutputAuthenticator>())
-                .AddTransient<IHandshakeAuth>(_ => _.GetRequiredService<OutputAuthenticator>())
+                .AddTransient<IRefreshAuth>(_ => _.GetRequiredService<OutputAuthenticator>())
                 .AddSingleton<IEventOutput>(_ =>
                 {
                     var config = _.GetRequiredService<IOptions<OutputConfiguration>>();
@@ -53,7 +53,7 @@ namespace Logship.Agent.Core.Services
                 })
                 .AddSingleton<IEventBuffer, InMemoryBuffer>()
                 .AddSingleton<IEventSink, EventSink>()
-                .AddTransient<AgentHandshakeService>()
+                .AddTransient<AgentAuthenticationService>()
                 .AddHostedService<AgentHealthService>()
                 .AddHostedService<AgentPushService>()
                 .AddHostedService<DiskInformationService>()

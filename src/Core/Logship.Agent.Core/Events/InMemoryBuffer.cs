@@ -30,18 +30,18 @@ namespace Logship.Agent.Core.Events
         public void Add(DataRecord data)
         {
             bool added = false;
-            lock (mutex) 
+            lock (mutex)
             {
                 if (bag.Count < maximumBufferSize)
                 {
-                    bag.Add(data);
+                    bag.Add(DataRecord.SanitizeRecord(data));
                     added = true;
                 }
             }
 
             if (false == added)
             {
-                if(Interlocked.CompareExchange(ref counter, 0L, OverflowWarnLogInterval) == OverflowWarnLogInterval)
+                if (Interlocked.CompareExchange(ref counter, 0L, OverflowWarnLogInterval) == OverflowWarnLogInterval)
                 {
                     MemoryBufferLog.WarnDataRecordDropped(this.logger, maximumBufferSize);
                 }
@@ -55,10 +55,34 @@ namespace Logship.Agent.Core.Events
 
         public void Add(IReadOnlyCollection<DataRecord> data)
         {
-            foreach (var item in data)
+            bool skipped = false;
+            lock (mutex)
             {
-                bag.Add(item);
+                foreach (var item in data)
+                {
+                    if (bag.Count >= maximumBufferSize)
+                    {
+                        skipped = true;
+                        break;
+                    }
+
+                    bag.Add(DataRecord.SanitizeRecord(item));
+                }
             }
+
+            if (skipped)
+            {
+                if (Interlocked.CompareExchange(ref counter, 0L, OverflowWarnLogInterval) == OverflowWarnLogInterval)
+                {
+                    MemoryBufferLog.WarnDataRecordDropped(this.logger, maximumBufferSize);
+                }
+                else
+                {
+                    Interlocked.Increment(ref counter);
+                    MemoryBufferLog.TraceDataRecordDropped(this.logger, maximumBufferSize);
+                }
+            }
+
         }
 
         public Task<IReadOnlyCollection<DataRecord>> NextAsync(CancellationToken token)
