@@ -8,6 +8,7 @@ using Logship.Agent.Core.Inputs.Common;
 using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Services.Sources.Common;
 using Logship.Agent.Core.Services.Sources.Common.LogFile;
+using Logship.Agent.Core.Services.Sources.Common.MQTT;
 using Logship.Agent.Core.Services.Sources.Common.Nmap;
 using Logship.Agent.Core.Services.Sources.Common.Otlp;
 using Logship.Agent.Core.Services.Sources.Common.Udp;
@@ -70,6 +71,7 @@ namespace Logship.Agent.Core.Services
                 .AddHostedService<UdpListenerService>()
                 .AddHostedService<LogFileService>()
                 .AddHostedService<NmapNetworkScannerService>()
+                .AddHostedService<MQTTListenerService>()
             ;
 
             return @this;

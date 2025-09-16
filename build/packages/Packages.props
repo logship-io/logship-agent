@@ -19,6 +19,7 @@
     <PackageReference Update="Microsoft.Extensions.Logging.Console" Version="9.0.2" />
     <PackageReference Update="Microsoft.NET.Test.Sdk" Version="17.14.0-preview-25107-01" />
     <PackageReference Update="Microsoft.VisualStudio.SlnGen" Version="12.0.11" />
+    <PackageReference Update="MQTTnet" Version="5.0.1.1416" />
     <PackageReference Update="MSTest.TestAdapter" Version="3.8.1" />
     <PackageReference Update="MSTest.TestFramework" Version="3.8.1" />
     <PackageReference Update="System.Diagnostics.PerformanceCounter" Version="9.0.2" />

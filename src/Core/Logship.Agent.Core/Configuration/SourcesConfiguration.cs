@@ -90,6 +90,11 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("NmapScanner")]
         [ConfigurationKeyName("NmapScanner")]
         public NmapScannerConfiguration? NmapScanner { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("MQTT")]
+        [ConfigurationKeyName("MQTT")]
+        public MQTTListenerConfiguration? MQTTListener { get; set; }
     }
 
     public class OtlpConfiguration : BaseInputConfiguration
@@ -164,7 +169,39 @@ namespace Logship.Agent.Core.Configuration
         public List<JournalCtlFilterConfiguration> MatchAll { get; set; } = new List<JournalCtlFilterConfiguration>();
     }
 
-    public sealed class NetworkInformationConfiguration : BaseIntervalInputConfiguration
+    public sealed class MQTTListenerConfiguration : BaseInputConfiguration
+    {
+        [JsonPropertyName("brokerAddress")]
+        [ConfigurationKeyName("brokerAddress")]
+        public string BrokerAddress { get; set; } = "localhost";
+
+        [Range(1, 65535)]
+        [JsonPropertyName("brokerPort")]
+        [ConfigurationKeyName("brokerPort")]
+        public int BrokerPort { get; set; } = 1883;
+
+        [JsonPropertyName("topic")]
+        [ConfigurationKeyName("topic")]
+        public string Topic { get; set; } = "#";
+
+        [JsonPropertyName("clientId")]
+        [ConfigurationKeyName("clientId")]
+        public string ClientId { get; set; } = "logship-agent";
+
+        [JsonPropertyName("username")]
+        [ConfigurationKeyName("username")]
+        public string? Username { get; set; }
+
+        [JsonPropertyName("password")]
+        [ConfigurationKeyName("password")]
+        public string? Password { get; set; }
+
+        [JsonPropertyName("useTls")]
+        [ConfigurationKeyName("useTls")]
+        public bool UseTls { get; set; } = false;
+    }
+
+        public sealed class NetworkInformationConfiguration : BaseIntervalInputConfiguration
     {
     }
 

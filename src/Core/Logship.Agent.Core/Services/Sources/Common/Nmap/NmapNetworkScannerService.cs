@@ -1,10 +1,9 @@
-﻿using Logship.Agent.Core.Configuration;
+using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.NetworkInformation;
-using System.Text;
 using System.Xml.Linq;
 
 namespace Logship.Agent.Core.Services.Sources.Common.Nmap
