@@ -199,6 +199,10 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("useTls")]
         [ConfigurationKeyName("useTls")]
         public bool UseTls { get; set; } = false;
+
+        [JsonPropertyName("combined")]
+        [ConfigurationKeyName("combined")]
+        public bool Combined { get; set; } = true;
     }
 
         public sealed class NetworkInformationConfiguration : BaseIntervalInputConfiguration

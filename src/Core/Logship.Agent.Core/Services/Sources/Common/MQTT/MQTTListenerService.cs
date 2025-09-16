@@ -61,21 +61,40 @@ namespace Logship.Agent.Core.Services.Sources.Common.MQTT
 
                 client.ApplicationMessageReceivedAsync += evnt =>
                 {
-                    var record = CreateRecord(
-                            "MQTT." + evnt.ApplicationMessage.Topic,
-                            DateTimeOffset.UtcNow
-                        );
-                    record.Data["topic"] = evnt.ApplicationMessage.Topic;
-                    record.Data["qos"] = (int)evnt.ApplicationMessage.QualityOfServiceLevel;
-                    record.Data["retain"] = evnt.ApplicationMessage.Retain;
-
-                    var str = evnt.ApplicationMessage.ConvertPayloadToString();
-                    if (str is not null)
                     {
-                        record.Data["payload"] = str;
+                        var record = CreateRecord(
+                                "MQTT." + evnt.ApplicationMessage.Topic,
+                                DateTimeOffset.UtcNow
+                            );
+                        record.Data["topic"] = evnt.ApplicationMessage.Topic;
+                        record.Data["qos"] = (int)evnt.ApplicationMessage.QualityOfServiceLevel;
+                        record.Data["retain"] = evnt.ApplicationMessage.Retain;
+
+                        var str = evnt.ApplicationMessage.ConvertPayloadToString();
+                        if (str is not null)
+                        {
+                            record.Data["payload"] = str;
+                        }
+
+                        this.Buffer.Add(record);
                     }
 
-                    this.Buffer.Add(record);
+                    if (this.Config.Combined)
+                    {
+                        var record = CreateRecord(
+                            "MQTT.CombinedTopics",
+                            DateTimeOffset.UtcNow
+                        );
+                        record.Data["topic"] = evnt.ApplicationMessage.Topic;
+                        record.Data["qos"] = (int)evnt.ApplicationMessage.QualityOfServiceLevel;
+                        record.Data["retain"] = evnt.ApplicationMessage.Retain;
+
+                        var str = evnt.ApplicationMessage.ConvertPayloadToString();
+                        if (str is not null)
+                        {
+                            record.Data["payload"] = str;
+                        }
+                    }
                     return Task.CompletedTask;
                 };
 
