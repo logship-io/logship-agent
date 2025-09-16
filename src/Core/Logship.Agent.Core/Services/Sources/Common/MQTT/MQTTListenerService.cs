@@ -75,12 +75,14 @@ namespace Logship.Agent.Core.Services.Sources.Common.MQTT
                         record.Data["payload"] = str;
                     }
 
+                    this.Buffer.Add(record);
                     return Task.CompletedTask;
                 };
 
                 try
                 {
-                    await client.SubscribeAsync(subscriberOptions, token);
+                    var result = await client.SubscribeAsync(subscriberOptions, token);
+                    MQTTListenerServiceLogging.MQTTConnected(this.Logger, this.Config.BrokerAddress, this.Config.BrokerPort);
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { /* noop */ }
                 catch (Exception ex)
@@ -96,7 +98,18 @@ namespace Logship.Agent.Core.Services.Sources.Common.MQTT
                 {
                     await Task.Delay(5000, token);
                 }
+
+                MQTTListenerServiceLogging.MQTTConnectionLost(this.Logger, this.Config.BrokerAddress, this.Config.BrokerPort);
             }
         }
+    }
+
+    internal static partial class MQTTListenerServiceLogging
+    {
+        [LoggerMessage(LogLevel.Information, "Connected to MQTT Server {host}:{port}")]
+        public static partial void MQTTConnected(ILogger logger, string host, int port);
+
+        [LoggerMessage(LogLevel.Information, "Connection lost to MQTT Server {host}:{port}")]
+        public static partial void MQTTConnectionLost(ILogger logger, string host, int port);
     }
 }
