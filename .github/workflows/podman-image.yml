@@ -63,7 +63,7 @@ jobs:
             apk add protobuf protobuf-dev grpc grpc-plugins
             git config --global --add safe.directory /workspace
             git submodule update --init --recursive
-            dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r linux-musl-x64 -o out --self-contained true
+            dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r ${{ matrix.runtime }} -o out --self-contained true
           '
 
       - name: Package
