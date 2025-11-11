@@ -50,7 +50,7 @@ jobs:
       - name: Build
         run: |
           git submodule update --init --recursive
-          dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r ${{ matrix.runtime }} -o out -p:StaticLink=true --self-contained true
+          dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r ${{ matrix.runtime }} -o out --self-contained true
 
       - name: Package
         shell: pwsh
