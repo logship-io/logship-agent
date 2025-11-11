@@ -19,8 +19,6 @@
       <InvariantGlobalization>true</InvariantGlobalization>
       <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
       <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
-
-      <StaticExecutable>true</StaticExecutable>
     </PropertyGroup>
 
     <ItemGroup>
