@@ -60,7 +60,7 @@ jobs:
             echo "Running a bunch of extra steps to make sure PROTOC works"
             export PROTOBUF_PROTOC=/usr/bin/protoc
             export gRPC_PluginFullPath=/usr/bin/grpc_csharp_plugin
-	          apk add protobuf protobuf-dev grpc grpc-plugins
+            apk add protobuf protobuf-dev grpc grpc-plugins
             git config --global --add safe.directory /workspace
             git submodule update --init --recursive
             dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r linux-musl-x64 -o out --self-contained true
