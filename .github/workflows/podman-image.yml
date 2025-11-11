@@ -56,15 +56,20 @@ jobs:
       - name: Build MUSL in Alpine
         if: ${{ matrix.runtime == 'linux-musl-x64' || matrix.runtime == 'linux-musl-arm64' }}
         run: |
-          docker run --rm -v "${{ github.workspace }}:/workspace" -w /workspace mcr.microsoft.com/dotnet/sdk:9.0-alpine sh -c '
+          docker run --rm -v "$PWD:/workspace" -w /workspace mcr.microsoft.com/dotnet/sdk:10.0-alpine-aot sh -c '
+            echo "Running a bunch of extra steps to make sure PROTOC works"
+            export PROTOBUF_PROTOC=/usr/bin/protoc
+            export gRPC_PluginFullPath=/usr/bin/grpc_csharp_plugin
+	          apk add protobuf protobuf-dev grpc grpc-plugins
+            git config --global --add safe.directory /workspace
             git submodule update --init --recursive
-            dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r ${{ matrix.runtime }} -o out --self-contained true
+            dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r linux-musl-x64 -o out --self-contained true
           '
 
       - name: Package
         shell: pwsh
         run: |
-          Get-ChildItem "./out" -ErrorAction SilentlyContinue |
+          Get-ChildItem ".\out\Logship.Agent.ConsoleHost.exe", ".\out\Logship.Agent.ConsoleHost", ".\out\appsettings.json" -ErrorAction SilentlyContinue |
           Compress-Archive -DestinationPath "LogshipAgent-${{ matrix.runtime }}.zip"
 
       - name: Upload Artifact
