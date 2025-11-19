@@ -56,26 +56,66 @@ internal sealed partial class PerformanceCountersService : BaseInputService<Wind
             // Check if we need to refresh our counters.
             if (counterRefresh.Elapsed > this.counterRefreshInterval)
             {
+                // Dispose old counters before getting new ones
+                foreach (var counter in counters.Values)
+                {
+                    try
+                    {
+                        counter.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        PerfLog.CounterDisposalError(this.Logger, counter.CategoryName, counter.CounterName, counter.InstanceName, ex.Message);
+                    }
+                }
+                
                 counters = this.GetUniqueCountersForQueries(this.counters);
                 counterRefresh.Restart();
+                PerfLog.FetchedCounters(this.Logger, counters.Count);
             }
 
             // Read each counter, and push the data into the info sink.
             foreach (var counter in counters)
             {
-                using var p = counter.Value;
-                this.sink.Add(new DataRecord(counter.Key.GetName(), DateTimeOffset.UtcNow, new Dictionary<string, object>
+                try
                 {
-                    { "machine", Environment.MachineName },
-                    { "category", counter.Key.Category },
-                    { "counter", counter.Key.CounterName },
-                    { "instance", counter.Key.InstanceName },
-                    { "value", p.RawValue.ToString(CultureInfo.InvariantCulture) }
-                }));
-
+                    var p = counter.Value;
+                    var rawValue = p.RawValue;
+                    this.sink.Add(new DataRecord(counter.Key.GetName(), DateTimeOffset.UtcNow, new Dictionary<string, object>
+                    {
+                        { "machine", Environment.MachineName },
+                        { "category", counter.Key.Category },
+                        { "counter", counter.Key.CounterName },
+                        { "instance", counter.Key.InstanceName },
+                        { "value", rawValue.ToString(CultureInfo.InvariantCulture) }
+                    }));
+                }
+                catch (InvalidOperationException ex)
+                {
+                    PerfLog.CounterInstanceUnavailable(this.Logger, counter.Key.Category, counter.Key.CounterName, counter.Key.InstanceName, ex.Message);
+                    // Skip this counter and continue with others
+                }
+                catch (Exception ex)
+                {
+                    PerfLog.CounterReadError(this.Logger, counter.Key.Category, counter.Key.CounterName, counter.Key.InstanceName, ex.Message);
+                    // Skip this counter and continue with others
+                }
             }
 
             await Task.Delay(this.interval, token);
+        }
+        
+        // Cleanup counters when service stops
+        foreach (var counter in counters.Values)
+        {
+            try
+            {
+                counter.Dispose();
+            }
+            catch (Exception ex)
+            {
+                PerfLog.CounterDisposalError(this.Logger, counter.CategoryName, counter.CounterName, counter.InstanceName, ex.Message);
+            }
         }
     }
 
@@ -132,22 +172,49 @@ internal sealed partial class PerformanceCountersService : BaseInputService<Wind
                 continue;
             }
 
-            var category = new PerformanceCounterCategory(counterSearch.Category);
-
-            var instances = category.GetInstanceNames()
-                .Where(instance => FileSystemName.MatchesSimpleExpression(counterSearch.Instance, instance, true))
-                .ToList();
-
-            if (instances.Count == 0)
+            try
             {
-                PerfLog.CounterMatchedNoInstances(this.Logger, counterSearch.Category, counterSearch.Name, counterSearch.Instance);
-                continue;
+                var category = new PerformanceCounterCategory(counterSearch.Category);
+
+                var instances = category.GetInstanceNames()
+                    .Where(instance => FileSystemName.MatchesSimpleExpression(counterSearch.Instance, instance, true))
+                    .ToList();
+
+                if (instances.Count == 0)
+                {
+                    PerfLog.CounterMatchedNoInstances(this.Logger, counterSearch.Category, counterSearch.Name, counterSearch.Instance);
+                    continue;
+                }
+
+                foreach (var instance in instances.SelectMany(i => 
+                    {
+                        try
+                        {
+                            return category.GetCounters(i).Where(c => FileSystemName.MatchesSimpleExpression(counterSearch.Name, c.CounterName));
+                        }
+                        catch (Exception ex)
+                        {
+                            PerfLog.CounterInstanceCreationFailed(this.Logger, counterSearch.Category, counterSearch.Name, i, ex.Message);
+                            return Enumerable.Empty<PerformanceCounter>();
+                        }
+                    }))
+                {
+                    try
+                    {
+                        PerfLog.FoundCounter(this.Logger, instance.CategoryName, instance.CounterName, instance.InstanceName, counterSearch.Category, counterSearch.Name, counterSearch.Instance);
+                        results[new CounterEntryKey(instance.CategoryName, instance.CounterName, instance.InstanceName)] = instance;
+                    }
+                    catch (Exception ex)
+                    {
+                        PerfLog.CounterInstanceCreationFailed(this.Logger, instance.CategoryName, instance.CounterName, instance.InstanceName, ex.Message);
+                        // Skip this counter and continue with others
+                    }
+                }
             }
-
-            foreach (var instance in instances.SelectMany(i => category.GetCounters(i).Where(c => FileSystemName.MatchesSimpleExpression(counterSearch.Name, c.CounterName))))
+            catch (Exception ex)
             {
-                PerfLog.FoundCounter(this.Logger, instance.CategoryName, instance.CounterName, instance.InstanceName, counterSearch.Category, counterSearch.Name, counterSearch.Instance);
-                results[new CounterEntryKey(instance.CategoryName, instance.CounterName, instance.InstanceName)] = instance;
+                PerfLog.CounterCategoryAccessFailed(this.Logger, counterSearch.Category, ex.Message);
+                continue;
             }
         }
 
@@ -173,5 +240,20 @@ internal static partial class PerfLog
 
     [LoggerMessage(LogLevel.Information, "Fetched {Count} counters. Beginning counter uploads.")]
     public static partial void FetchedCounters(ILogger logger, int count);
+
+    [LoggerMessage(LogLevel.Warning, "Counter instance \\\\{Category}({Counter})\\\\{Instance} is unavailable: {Message}")]
+    public static partial void CounterInstanceUnavailable(ILogger logger, string category, string counter, string instance, string message);
+
+    [LoggerMessage(LogLevel.Warning, "Error reading counter \\\\{Category}({Counter})\\\\{Instance}: {Message}")]
+    public static partial void CounterReadError(ILogger logger, string category, string counter, string instance, string message);
+
+    [LoggerMessage(LogLevel.Warning, "Failed to create counter instance \\\\{Category}({Counter})\\\\{Instance}: {Message}")]
+    public static partial void CounterInstanceCreationFailed(ILogger logger, string category, string counter, string instance, string message);
+
+    [LoggerMessage(LogLevel.Warning, "Failed to access counter category {Category}: {Message}")]
+    public static partial void CounterCategoryAccessFailed(ILogger logger, string category, string message);
+
+    [LoggerMessage(LogLevel.Warning, "Error disposing counter \\\\{Category}({Counter})\\\\{Instance}: {Message}")]
+    public static partial void CounterDisposalError(ILogger logger, string category, string counter, string instance, string message);
 }
 

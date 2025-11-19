@@ -440,6 +440,58 @@ namespace Logship.Agent.FileBasedTests.LogFiles
             Assert.IsTrue(record.Data.ContainsKey("ModifiedTime"));
         }
 
+        [TestMethod]
+        public async Task ShouldHandleFilePathsWithSpaces()
+        {
+            CancellationToken cancellationToken = default;
+            // Arrange
+            using var tempDir = new TempDirectory();
+            var filePathWithSpaces = Path.Combine(tempDir.Path, "file with spaces in name.log");
+            using var tempFile = new TempFile(filePathWithSpaces);
+            var expectedContent = "2023-01-01 10:00:00 INFO Log entry from file with spaces";
+            await tempFile.AppendLine(expectedContent, Encoding.UTF8, cancellationToken);
+
+            var eventBuffer = new TestEventBuffer();
+            var logger = new TestLogger<LogFileService>();
+
+            // Act
+            using var serviceWrapper = CreateLogFileService(filePathWithSpaces, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+
+            // Assert
+            Assert.AreEqual(1, eventBuffer.Records.Count, "Should successfully read from file with spaces in path");
+            var record = eventBuffer.Records.First();
+            Assert.AreEqual("LogFile", record.Schema);
+            Assert.AreEqual(expectedContent, record.Data["Content"]);
+            Assert.AreEqual(Path.GetFullPath(filePathWithSpaces), record.Data["FilePath"]);
+        }
+
+        [TestMethod]
+        public async Task ShouldHandleFilePathsWithSpecialCharacters()
+        {
+            CancellationToken cancellationToken = default;
+            // Arrange
+            using var tempDir = new TempDirectory();
+            var specialPath = Path.Combine(tempDir.Path, "file-with-special~chars$and&symbols.log");
+            using var tempFile = new TempFile(specialPath);
+            var expectedContent = "Log entry from file with special characters";
+            await tempFile.AppendLine(expectedContent, Encoding.UTF8, cancellationToken);
+
+            var eventBuffer = new TestEventBuffer();
+            var logger = new TestLogger<LogFileService>();
+
+            // Act
+            using var serviceWrapper = CreateLogFileService(specialPath, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+
+            // Assert
+            Assert.AreEqual(1, eventBuffer.Records.Count, "Should successfully read from file with special characters");
+            var record = eventBuffer.Records.First();
+            Assert.AreEqual("LogFile", record.Schema);
+            Assert.AreEqual(expectedContent, record.Data["Content"]);
+            Assert.AreEqual(Path.GetFullPath(specialPath), record.Data["FilePath"]);
+        }
+
         private sealed class TestServiceWrapper : IDisposable
         {
             public LogFileService Service { get; }

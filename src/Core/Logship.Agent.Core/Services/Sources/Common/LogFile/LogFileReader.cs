@@ -26,7 +26,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
 
         public LogFileReader(string filePath, LogFileServiceConfiguration config, ILogger logger)
         {
-            _filePath = filePath;
+            _filePath = Path.GetFullPath(filePath); ;
             _config = config;
             _logger = logger;
             _encoding = GetEncoding(config.Encoding);
@@ -138,7 +138,14 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
             try
             {
                 _fileStream?.Dispose();
-                _fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                // Use the normalized file path and explicitly specify buffer size to avoid internal buffering issues
+                _fileStream = new FileStream(
+                    _filePath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete,
+                    bufferSize: _config.ReadBufferSize,
+                    FileOptions.SequentialScan);
                 _fileStream.Seek(_currentPosition, SeekOrigin.Begin);
             }
             catch (Exception ex)

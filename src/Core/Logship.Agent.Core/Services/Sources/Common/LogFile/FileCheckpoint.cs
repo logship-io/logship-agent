@@ -31,16 +31,18 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
 
         public long GetPosition(string filePath)
         {
-            var fileId = GetFileId(filePath);
+            var normalizedPath = NormalizePath(filePath);
+            var fileId = GetFileId(normalizedPath);
             return _checkpoints.TryGetValue(fileId, out var checkpoint) ? checkpoint.Position : 0;
         }
 
         public void SetPosition(string filePath, long position)
         {
-            var fileId = GetFileId(filePath);
-            var fileInfo = new FileInfo(filePath);
+            var normalizedPath = NormalizePath(filePath);
+            var fileId = GetFileId(normalizedPath);
+            var fileInfo = new FileInfo(normalizedPath);
 
-            _checkpoints.AddOrUpdate(fileId, new CheckpointInfo(filePath, position, fileInfo.Length, fileInfo.LastWriteTimeUtc),
+            _checkpoints.AddOrUpdate(fileId, new CheckpointInfo(normalizedPath, position, fileInfo.Length, fileInfo.LastWriteTimeUtc),
                 (_, existing) => existing with { Position = position, FileSize = fileInfo.Length, LastModified = fileInfo.LastWriteTimeUtc });
 
             // Immediately persist this checkpoint
@@ -53,9 +55,10 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
 
             foreach (var filePath in availableFiles)
             {
-                if (ShouldReadFile(filePath, ignoreCheckpoints))
+                var normalizedPath = NormalizePath(filePath);
+                if (ShouldReadFile(normalizedPath, ignoreCheckpoints))
                 {
-                    filesToRead.Add(filePath);
+                    filesToRead.Add(normalizedPath);
                 }
             }
 
@@ -64,10 +67,11 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
 
         public void OnFileChanged(string filePath)
         {
-            var fileId = GetFileId(filePath);
+            var normalizedPath = NormalizePath(filePath);
+            var fileId = GetFileId(normalizedPath);
             if (_checkpoints.TryGetValue(fileId, out var checkpoint))
             {
-                var fileInfo = new FileInfo(filePath);
+                var fileInfo = new FileInfo(normalizedPath);
                 if (fileInfo.Exists && fileInfo.LastWriteTimeUtc > checkpoint.LastModified)
                 {
                     // File has been modified since last checkpoint, update metadata
@@ -119,13 +123,14 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
                 return false;
             }
 
-            var fileId = GetFileId(filePath);
+            var normalizedPath = NormalizePath(filePath);
+            var fileId = GetFileId(normalizedPath);
             if (!_checkpoints.TryGetValue(fileId, out var checkpoint))
             {
                 return false;
             }
 
-            var fileInfo = new FileInfo(filePath);
+            var fileInfo = new FileInfo(normalizedPath);
             if (!fileInfo.Exists)
             {
                 return false;
@@ -212,10 +217,21 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
             }
         }
 
+        private static string NormalizePath(string filePath)
+        {
+            // Normalize the path to handle spaces and special characters consistently
+            return Path.GetFullPath(filePath);
+        }
+
         private static string GetFileId(string filePath)
         {
-            var normalizedPath = Path.GetFullPath(filePath).ToLowerInvariant();
-            var bytes = Encoding.UTF8.GetBytes(normalizedPath);
+            // Preserve case sensitivity based on the operating system
+            // Windows file systems are case-insensitive, Unix/Linux are case-sensitive
+            var path = OperatingSystem.IsWindows()
+                ? filePath.ToLowerInvariant()
+                : filePath;
+
+            var bytes = Encoding.UTF8.GetBytes(path);
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
             var hash = SHA1.HashData(bytes);
 #pragma warning restore CA5350 // Do Not Use Weak Cryptographic Algorithms

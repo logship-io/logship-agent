@@ -105,14 +105,16 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
         {
             try
             {
-                var reader = new LogFileReader(filePath, Config, Logger);
-                var fileInfo = new FileInfo(filePath);
+                // Normalize the file path to handle spaces and special characters properly
+                var normalizedFilePath = Path.GetFullPath(filePath);
+                var reader = new LogFileReader(normalizedFilePath, Config, Logger);
+                var fileInfo = new FileInfo(normalizedFilePath);
 
-                if (_checkpoint.ShouldResumeFromCheckpoint(filePath, Config.IgnoreCheckpoints))
+                if (_checkpoint.ShouldResumeFromCheckpoint(normalizedFilePath, Config.IgnoreCheckpoints))
                 {
-                    var position = _checkpoint.GetPosition(filePath);
+                    var position = _checkpoint.GetPosition(normalizedFilePath);
                     reader.SetPosition(position);
-                    LogFileServiceLog.ResumingFromCheckpoint(Logger, filePath, position);
+                    LogFileServiceLog.ResumingFromCheckpoint(Logger, normalizedFilePath, position);
                 }
                 else if (!Config.StartAtBeginning && fileInfo.Exists)
                 {
@@ -120,9 +122,9 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
                     reader.SetPosition(fileInfo.Length);
                 }
 
-                _fileReaders.TryAdd(filePath, reader);
+                _fileReaders.TryAdd(normalizedFilePath, reader);
                 var initialLastModified = fileInfo.Exists ? fileInfo.LastWriteTimeUtc : DateTime.MinValue;
-                _lastFileStates.TryAdd(filePath, initialLastModified);
+                _lastFileStates.TryAdd(normalizedFilePath, initialLastModified);
             }
             catch (Exception ex)
             {
@@ -200,11 +202,14 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
         {
             if (e.FullPath != null)
             {
+                // Normalize the file path to handle spaces and special characters properly
+                var normalizedFilePath = Path.GetFullPath(e.FullPath);
+                
                 // Notify checkpoint system of file change
-                _checkpoint.OnFileChanged(e.FullPath);
+                _checkpoint.OnFileChanged(normalizedFilePath);
                 
                 // If we have a reader for this file, potentially process it immediately
-                if (_fileReaders.TryGetValue(e.FullPath, out var reader))
+                if (_fileReaders.TryGetValue(normalizedFilePath, out var reader))
                 {
                     _ = Task.Run(async () =>
                     {
