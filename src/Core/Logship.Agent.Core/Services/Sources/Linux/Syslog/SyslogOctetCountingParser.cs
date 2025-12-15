@@ -37,7 +37,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
             var remainingOctets = length - builder.Length;
             if (remainingOctets <=0) return null;
 
-            var buffer = new byte[remainingOctets];
+            var buffer = new char[remainingOctets];
             var ok = await reader.ReadExectlyAsync(buffer).ConfigureAwait(false);
             if (false == ok)
             {
@@ -47,9 +47,8 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
             // Decode as UTF8 and pass to RFC5424 reader
             try
             {
-                using var ms = new MemoryStream(buffer, writable: false);
-                using var innerReader = new StreamReader(ms, Encoding.UTF8);
-                var parsed = await SyslogRfc5424Reader.TryParseAsync(innerReader).ConfigureAwait(false);
+                
+                var parsed = SyslogRfc5424Reader.TryParseFromSpan(buffer.AsSpan());
                 return parsed;
             }
             catch
