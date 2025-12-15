@@ -14,6 +14,7 @@ using Logship.Agent.Core.Services.Sources.Common.Otlp;
 using Logship.Agent.Core.Services.Sources.Common.Udp;
 using Logship.Agent.Core.Services.Sources.Linux.JournalCtl;
 using Logship.Agent.Core.Services.Sources.Linux.Proc;
+using Logship.Agent.Core.Services.Sources.Linux.Syslog;
 using Logship.Agent.Core.Services.Sources.Windows.Etw;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -72,6 +73,7 @@ namespace Logship.Agent.Core.Services
                 .AddHostedService<LogFileService>()
                 .AddHostedService<NmapNetworkScannerService>()
                 .AddHostedService<MQTTListenerService>()
+                .AddHostedService<SyslogTcpReceiverService>()
             ;
 
             return @this;

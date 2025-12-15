@@ -95,6 +95,19 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("MQTT")]
         [ConfigurationKeyName("MQTT")]
         public MQTTListenerConfiguration? MQTTListener { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("SyslogTcp")]
+        [ConfigurationKeyName("SyslogTcp")]
+        public SyslogTcpConfiguration? SyslogTcp { get; set; }
+    }
+
+    public class SyslogTcpConfiguration : BaseInputConfiguration
+    {
+        [Range(1, 65535)]
+        [JsonPropertyName("port")]
+        [ConfigurationKeyName("port")]
+        public int Port { get; set; } = 514;
     }
 
     public class OtlpConfiguration : BaseInputConfiguration
