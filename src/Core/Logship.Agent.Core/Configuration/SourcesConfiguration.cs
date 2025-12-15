@@ -104,6 +104,11 @@ namespace Logship.Agent.Core.Configuration
 
     public class SyslogTcpConfiguration : BaseInputConfiguration
     {
+
+        [JsonPropertyName("endpoint")]
+        [ConfigurationKeyName("endpoint")]
+        public string Endpoint { get; set; } = "127.0.0.1";
+
         [Range(1, 65535)]
         [JsonPropertyName("port")]
         [ConfigurationKeyName("port")]

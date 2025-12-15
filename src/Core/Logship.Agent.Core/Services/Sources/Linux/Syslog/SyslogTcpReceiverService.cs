@@ -3,9 +3,6 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
     using Logship.Agent.Core.Configuration;
     using Logship.Agent.Core.Events;
     using Logship.Agent.Core.Services;
-    using Logship.Agent.Core.Services.Sources.Common.Udp;
-    using Microsoft.Diagnostics.Tracing.Parsers.MicrosoftAntimalwareEngine;
-    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using System;
@@ -85,7 +82,12 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
 
         protected override Task OnStart(CancellationToken token)
         {
-            this.tcpListener = new TcpListener(IPAddress.Any, this.Config.Port);
+            if (false == IPAddress.TryParse(this.Config.Endpoint, out var listen))
+            {
+                listen = IPAddress.Loopback;
+            }
+
+            this.tcpListener = new TcpListener(listen, this.Config.Port);
             this.tcpListener.Start();
 
             return base.OnStart(token);
