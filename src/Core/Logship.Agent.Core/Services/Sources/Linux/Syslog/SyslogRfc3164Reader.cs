@@ -159,7 +159,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
                 return false;
             }
 
-            var now = DateTimeOffset.Now;
+            var now = DateTimeOffset.UtcNow;
             timestamp = new DateTimeOffset(now.Year, month + 1, day, timeOfDay.Hours, timeOfDay.Minutes, timeOfDay.Seconds, now.Offset);
             return true;
 
