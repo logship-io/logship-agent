@@ -11,7 +11,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.MQTT
 
     internal sealed class MQTTListenerService : BaseInputService<MQTTListenerConfiguration>
     {
-        public MQTTListenerService(IOptions<SourcesConfiguration> config, IEventBuffer eventBuffer, ILogger<NmapNetworkScannerService> logger)
+        public MQTTListenerService(IOptions<SourcesConfiguration> config, IEventBuffer eventBuffer, ILogger<MQTTListenerService> logger)
             : base(config.Value.MQTTListener, eventBuffer, nameof(MQTTListenerService), logger)
         {
         }
