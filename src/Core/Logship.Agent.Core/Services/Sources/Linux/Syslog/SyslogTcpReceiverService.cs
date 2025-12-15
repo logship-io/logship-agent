@@ -149,7 +149,6 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
                     // Copy fields from message
                     dict["priority"] = message.Priority;
                     dict["version"] = message.Version;
-                    dict["timestamp"] = message.Timestamp;
                     dict["hostname"] = message.Hostname;
                     dict["appName"] = message.AppName;
                     dict["processId"] = message.ProcId;
