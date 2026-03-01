@@ -7,12 +7,15 @@ using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Records;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Net;
 
 namespace Logship.Agent.Core.Events
 {
     internal sealed class LogshipEventOutput : IEventOutput, IDisposable
     {
+        internal static readonly ActivitySource OutputActivitySource = new("Logship.Agent.Output", "1.0.0");
+
         private readonly string endpoint;
         private readonly Guid account;
         private readonly IOutputAuth authenticator;
@@ -41,6 +44,10 @@ namespace Logship.Agent.Core.Events
             {
                 return true;
             }
+
+            using var activity = OutputActivitySource.StartActivity("HttpPush", ActivityKind.Client);
+            activity?.SetTag("logship.output.endpoint", this.endpoint);
+            activity?.SetTag("logship.output.record_count", records.Count);
 
             using var request = await Api.PutInflowAsync(this.endpoint, this.account, records, cancellationToken);
             if (false == await this.authenticator.TryAddAuthAsync(request, cancellationToken))

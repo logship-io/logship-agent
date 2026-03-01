@@ -5,6 +5,7 @@
 using Logship.Agent.Core.Configuration;
 using Microsoft.Extensions.Configuration;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Logship.Agent.Core.Services.Sources.Common.LogFile
@@ -58,6 +59,10 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
         [JsonPropertyName("ignoreOlderSecs")]
         [ConfigurationKeyName("ignoreOlderSecs")]
         public int? IgnoreOlderSecs { get; set; }
+
+        [JsonPropertyName("jsonLines")]
+        [ConfigurationKeyName("jsonLines")]
+        public JsonLinesConfiguration? JsonLines { get; set; }
     }
 
     public sealed class MultilineConfiguration
@@ -79,11 +84,31 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
         public int TimeoutMs { get; set; } = 1000;
     }
 
+    public sealed class JsonLinesConfiguration
+    {
+        [JsonPropertyName("enabled")]
+        [ConfigurationKeyName("enabled")]
+        public bool Enabled { get; set; } = false;
+
+        [JsonPropertyName("skipInvalidLines")]
+        [ConfigurationKeyName("skipInvalidLines")]
+        public bool SkipInvalidLines { get; set; } = true;
+
+        [JsonPropertyName("timestampField")]
+        [ConfigurationKeyName("timestampField")]
+        public string? TimestampField { get; set; }
+
+        [JsonPropertyName("messageField")]
+        [ConfigurationKeyName("messageField")]
+        public string? MessageField { get; set; }
+    }
+
     internal sealed record CheckpointInfo(string FilePath, long Position, long FileSize, DateTime LastModified);
 
     [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
     [JsonSerializable(typeof(LogFileServiceConfiguration))]
     [JsonSerializable(typeof(MultilineConfiguration))]
+    [JsonSerializable(typeof(JsonLinesConfiguration))]
     [JsonSerializable(typeof(Dictionary<string, object>))]
     [JsonSerializable(typeof(CheckpointInfo))]
     internal sealed partial class LogFileSourceGenerationContext : JsonSerializerContext

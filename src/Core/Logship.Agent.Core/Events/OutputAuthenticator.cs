@@ -125,22 +125,42 @@ namespace Logship.Agent.Core.Events
                                 {
                                     if (result.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                                     {
-                                        var unauthorizedContent = await result.Content.ReadFromJsonAsync(ModelSourceGenerationContext.Default.AgentRefreshResponseModel, token);
-                                        if (unauthorizedContent != null && !string.IsNullOrEmpty(unauthorizedContent.RefreshToken))
+                                        var responseBody = await result.Content.ReadAsStringAsync(token);
+
+                                        // Try to extract a refresh token from the 401 response body
+                                        if (false == string.IsNullOrWhiteSpace(responseBody))
                                         {
-                                            AuthenticatorLog.RefreshingWithNewToken(logger);
-                                            this.refreshToken = unauthorizedContent.RefreshToken;
-                                            this.accessToken = null;
-                                            AuthenticatorLog.DeviceIdentifier(logger, this.deviceId);
-                                            await Task.Delay(15_000, token);
-                                            continue;
+                                            var unauthorizedContent = System.Text.Json.JsonSerializer.Deserialize(responseBody, ModelSourceGenerationContext.Default.AgentRefreshResponseModel);
+                                            if (unauthorizedContent != null && !string.IsNullOrEmpty(unauthorizedContent.RefreshToken))
+                                            {
+                                                AuthenticatorLog.RefreshingWithNewToken(logger);
+                                                this.refreshToken = unauthorizedContent.RefreshToken;
+                                                this.accessToken = null;
+                                                AuthenticatorLog.DeviceIdentifier(logger, this.deviceId);
+                                                await Task.Delay(15_000, token);
+                                                continue;
+                                            }
                                         }
+
+                                        // 401 without a usable refresh token: clear stored tokens and retry unauthenticated
+                                        AuthenticatorLog.ClearingTokensForReauth(logger);
+                                        this.refreshToken = null;
+                                        this.accessToken = null;
+                                        await this.tokenStorage.DeleteTokenAsync(token);
+                                        await Task.Delay(15_000, token);
+                                        continue;
                                     }
 
                                     result.EnsureSuccessStatusCode(); // Will throw for other errors
                                 }
 
-                                content = await result.Content.ReadFromJsonAsync(ModelSourceGenerationContext.Default.AgentRefreshResponseModel, token);
+                                var successBody = await result.Content.ReadAsStringAsync(token);
+                                if (string.IsNullOrWhiteSpace(successBody))
+                                {
+                                    throw new InvalidOperationException("Server returned success with empty body.");
+                                }
+
+                                content = System.Text.Json.JsonSerializer.Deserialize(successBody, ModelSourceGenerationContext.Default.AgentRefreshResponseModel);
                                 ArgumentNullException.ThrowIfNull(content, nameof(content));
                             }
                             catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -254,6 +274,9 @@ namespace Logship.Agent.Core.Events
 
         [LoggerMessage(LogLevel.Information, "Received new refresh token. Attempting to refresh with it.")]
         public static partial void RefreshingWithNewToken(ILogger logger);
+
+        [LoggerMessage(LogLevel.Warning, "Received 401 without usable refresh token. Clearing stored tokens for full re-authentication.")]
+        public static partial void ClearingTokensForReauth(ILogger logger);
 
         [LoggerMessage(LogLevel.Information, "Device verification ID: {deviceId}")]
         public static partial void DeviceVerificationId(ILogger logger, string deviceId);

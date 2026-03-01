@@ -11,7 +11,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal sealed class SyslogTcpReceiverService : BaseInputService<SyslogTcpConfiguration>, IDisposable
+    internal sealed partial class SyslogTcpReceiverService : BaseInputService<SyslogTcpConfiguration>, IDisposable
     {
         /*
          * RFC 6587
@@ -118,7 +118,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
             {
                 var client = await this.tcpListener!.AcceptTcpClientAsync(token);
 
-                this.Logger.LogInformation("Accepted new TCP syslog client from {RemoteEndPoint}", client.Client.RemoteEndPoint);
+                LogAcceptedTcpClient(this.Logger, client.Client.RemoteEndPoint);
                 _ = Task.Run(async () => await this.HandleClientAsync(client, token), token);
             }
         }
@@ -159,5 +159,8 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
                 }
             }
         }
+
+        [LoggerMessage(LogLevel.Information, "Accepted new TCP syslog client from {RemoteEndPoint}")]
+        private static partial void LogAcceptedTcpClient(ILogger logger, EndPoint? remoteEndPoint);
     }
 }

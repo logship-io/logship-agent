@@ -17,6 +17,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
         private readonly ConcurrentDictionary<string, DateTime> _lastFileStates;
         private readonly FileWatcher _fileWatcher;
         private readonly FileCheckpoint _checkpoint;
+        private readonly JsonLinesProcessor _jsonLinesProcessor;
 
         protected override bool ExitOnException => false;
 
@@ -27,6 +28,7 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
             _lastFileStates = new ConcurrentDictionary<string, DateTime>();
             _fileWatcher = new FileWatcher(Config, logger);
             _checkpoint = new FileCheckpoint(Path.Join(outputConfig.Value.DataPath, "logfile-checkpoints"), logger);
+            _jsonLinesProcessor = new JsonLinesProcessor(Config.JsonLines, logger);
         }
 
         protected override async Task ExecuteAsync(CancellationToken token)
@@ -165,7 +167,12 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
                 await foreach (var processedLine in reader.ReadLinesAsync(token))
                 {
                     var record = CreateLogFileRecord(reader.FilePath, processedLine, fileInfo);
-                    Buffer.Add(record);
+                    
+                    // Only add record if it's not null (could be null for skipped invalid JSON lines)
+                    if (record != null)
+                    {
+                        Buffer.Add(record);
+                    }
 
                     // Update checkpoint (automatically persisted)
                     _checkpoint.SetPosition(reader.FilePath, reader.CurrentPosition);
@@ -179,16 +186,49 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
             }
         }
 
-        private DataRecord CreateLogFileRecord(string filePath, ProcessedLine processedLine, FileInfo fileInfo)
+        private DataRecord? CreateLogFileRecord(string filePath, ProcessedLine processedLine, FileInfo fileInfo)
         {
             var record = CreateRecord("LogFile");
 
-            record.Data["FilePath"] = filePath;
-            record.Data["Content"] = processedLine.Content;
-            record.Data["LineNumber"] = processedLine.LineNumber;
-            record.Data["ByteOffset"] = processedLine.ByteOffset;
-            record.Data["FileSize"] = fileInfo.Length;
-            record.Data["ModifiedTime"] = fileInfo.LastWriteTimeUtc;
+            // Check if JSON Lines processing is enabled
+            if (_jsonLinesProcessor.IsEnabled)
+            {
+                var (jsonData, success) = _jsonLinesProcessor.ProcessJsonLine(processedLine.Content, processedLine.LineNumber, filePath);
+
+                if (success)
+                {
+                    LogFileServiceLog.JsonLineParsed(Logger, filePath, processedLine.LineNumber);
+
+                    // Set file metadata first
+                    record.Data["FilePath"] = filePath;
+                    record.Data["LineNumber"] = processedLine.LineNumber;
+                    record.Data["ByteOffset"] = processedLine.ByteOffset;
+                    record.Data["FileSize"] = fileInfo.Length;
+                    record.Data["ModifiedTime"] = fileInfo.LastWriteTimeUtc;
+
+                    // Overlay parsed JSON data — on key collision, user data takes priority
+                    foreach (var kvp in jsonData)
+                    {
+                        record.Data[kvp.Key] = kvp.Value;
+                    }
+                }
+                else
+                {
+                    // JSON parsing failed and skipInvalidLines is enabled
+                    return null;
+                }
+            }
+            else
+            {
+                // Standard text file processing
+                record.Data["FilePath"] = filePath;
+                record.Data["Content"] = processedLine.Content;
+                record.Data["LineNumber"] = processedLine.LineNumber;
+                record.Data["ByteOffset"] = processedLine.ByteOffset;
+                record.Data["FileSize"] = fileInfo.Length;
+                record.Data["ModifiedTime"] = fileInfo.LastWriteTimeUtc;
+            }
+
             if (processedLine.MultilineId != null)
             {
                 record.Data["MultilineId"] = processedLine.MultilineId;

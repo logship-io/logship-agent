@@ -7,11 +7,20 @@ using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Records;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 
 namespace Logship.Agent.Core.Events
 {
     internal sealed class EventSink : IEventSink, IEventBuffer, IEventOutput, IDisposable
     {
+        internal static readonly Meter SinkMeter = new("Logship.Agent.Sink", "1.0.0");
+        internal static readonly ActivitySource SinkActivitySource = new("Logship.Agent.Sink", "1.0.0");
+        private static readonly Counter<long> FlushCounter = SinkMeter.CreateCounter<long>("logship.agent.sink.flush_count", "flushes", "Total flush operations");
+        private static readonly Counter<long> FlushSuccessCounter = SinkMeter.CreateCounter<long>("logship.agent.sink.flush_success", "flushes", "Successful flush operations");
+        private static readonly Counter<long> FlushFailureCounter = SinkMeter.CreateCounter<long>("logship.agent.sink.flush_failure", "flushes", "Failed flush operations");
+        private static readonly Histogram<double> FlushDuration = SinkMeter.CreateHistogram<double>("logship.agent.sink.flush_duration", "ms", "Duration of flush operations in milliseconds");
+
         private readonly int maximumFlushSize;
         private readonly IEventBuffer buffer;
         private readonly ILogger logger;
@@ -39,20 +48,42 @@ namespace Logship.Agent.Core.Events
                 return;
             }
 
+            using var activity = SinkActivitySource.StartActivity("Flush", ActivityKind.Internal);
+            activity?.SetTag("logship.flush.record_count", records.Count);
+            var sw = Stopwatch.StartNew();
+
             EventSinkLog.FlushingRecords(this.logger, records.Count);
             try
             {
                 foreach (var batch in records.Chunk(this.maximumFlushSize))
                 {
+                    FlushCounter.Add(1);
                     using var flush = new EventSinkFlushContext(batch, onFailure: this.buffer.Add, logger);
                     flush.Success = await this.eventOutput.SendAsync(batch, token);
+                    if (flush.Success)
+                    {
+                        FlushSuccessCounter.Add(1);
+                    }
+                    else
+                    {
+                        FlushFailureCounter.Add(1);
+                        activity?.SetStatus(ActivityStatusCode.Error, "Flush failed");
+                    }
                 }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { /* noop */ }
             catch (Exception ex)
             {
+                FlushFailureCounter.Add(1);
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 EventSinkLog.Exception(this.logger, ex);
                 throw;
+            }
+            finally
+            {
+                sw.Stop();
+                FlushDuration.Record(sw.Elapsed.TotalMilliseconds);
+                activity?.SetTag("logship.flush.duration_ms", sw.Elapsed.TotalMilliseconds);
             }
         }
 

@@ -9,6 +9,7 @@ namespace Logship.Agent.Core.Records
     [JsonSerializable(typeof(DataRecord))]
     [JsonSerializable(typeof(IEnumerable<DataRecord>))]
     [JsonSerializable(typeof(IReadOnlyCollection<DataRecord>))]
+    [JsonSerializable(typeof(Dictionary<string, object>))]
     [JsonSerializable(typeof(long))]
     [JsonSerializable(typeof(ulong))]
     [JsonSerializable(typeof(int))]

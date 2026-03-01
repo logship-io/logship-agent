@@ -23,12 +23,8 @@
 
     <ItemGroup>
       <PackageReference Include="Grpc.AspNetCore" />
-      <PackageReference Include="Microsoft.Extensions.Configuration" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-      <PackageReference Include="Microsoft.Extensions.Hosting" />
       <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" />
       <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" />
       <PackageReference Include="System.Diagnostics.PerformanceCounter" />
     </ItemGroup>
 
