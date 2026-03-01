@@ -74,6 +74,7 @@ namespace Logship.Agent.Core.Services
                 .AddHostedService<NmapNetworkScannerService>()
                 .AddHostedService<MQTTListenerService>()
                 .AddHostedService<SyslogTcpReceiverService>()
+                .AddHostedService<InternalMetricsService>()
             ;
 
             return @this;

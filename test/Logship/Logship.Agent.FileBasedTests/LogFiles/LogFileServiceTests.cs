@@ -308,7 +308,7 @@ namespace Logship.Agent.FileBasedTests.LogFiles
             CancellationToken cancellationToken = default;
             // Arrange
             using var tempFile = new TempFile();
-            var content = "Üñíçødé tëxt with UTF-8 characters: 中文 العربية";
+            var content = "Üñíçødé tēxt with UTF-8 characters: 中文 العربية";
             await tempFile.Append(content + Environment.NewLine, Encoding.UTF8, cancellationToken);
 
             var eventBuffer = new TestEventBuffer();
@@ -663,6 +663,223 @@ namespace Logship.Agent.FileBasedTests.LogFiles
             return new TestServiceWrapper(service, tempDirectoryPath);
         }
 
+        [TestMethod]
+        public async Task ShouldParseJsonLines()
+        {
+            CancellationToken cancellationToken = default;
+            // Arrange
+            using var tempFile = new TempFile();
+            var jsonLines = new[]
+            {
+                """{"timestamp": "2023-01-01T10:00:00Z", "level": "INFO", "message": "Application started", "userId": 123}""",
+                """{"timestamp": "2023-01-01T10:00:01Z", "level": "ERROR", "message": "Database connection failed", "error": "Connection timeout"}""",
+                """{"timestamp": "2023-01-01T10:00:02Z", "level": "DEBUG", "message": "Processing request", "requestId": "abc-123"}"""
+            };
+
+            foreach (var line in jsonLines)
+            {
+                await tempFile.AppendLine(line, Encoding.UTF8, cancellationToken);
+            }
+
+            var eventBuffer = new TestEventBuffer();
+            var logger = new TestLogger<LogFileService>();
+
+            // Act
+            using var serviceWrapper = CreateLogFileServiceWithJsonLines(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+
+            // Assert
+            Assert.AreEqual(3, eventBuffer.Records.Count, "Should parse all JSON lines");
+            
+            var records = eventBuffer.Records.ToArray();
+            
+            // Check that we have records for all expected timestamps
+            var timestamps = records.Select(r => r.Data["timestamp"].ToString()).OrderBy(t => t).ToArray();
+            Assert.AreEqual("2023-01-01T10:00:00Z", timestamps[0]);
+            Assert.AreEqual("2023-01-01T10:00:01Z", timestamps[1]);
+            Assert.AreEqual("2023-01-01T10:00:02Z", timestamps[2]);
+            
+            // Find the first record and verify its properties
+            var firstRecord = records.First(r => r.Data["timestamp"].ToString() == "2023-01-01T10:00:00Z");
+            Assert.AreEqual("LogFile", firstRecord.Schema);
+            Assert.AreEqual("INFO", firstRecord.Data["level"]);
+            Assert.AreEqual("Application started", firstRecord.Data["message"]);
+            Assert.AreEqual(123L, firstRecord.Data["userId"]);
+            Assert.AreEqual(tempFile.FileInfo.FullName, firstRecord.Data["FilePath"]);
+            Assert.IsTrue(firstRecord.Data.ContainsKey("LineNumber"));
+
+            // Verify all records have the correct schema
+            foreach (var record in records)
+            {
+                Assert.AreEqual("LogFile", record.Schema);
+                Assert.IsTrue(record.Data.ContainsKey("FilePath"));
+                Assert.IsTrue(record.Data.ContainsKey("LineNumber"));
+                Assert.IsTrue(record.Data.ContainsKey("timestamp"));
+                Assert.IsTrue(record.Data.ContainsKey("level"));
+                Assert.IsTrue(record.Data.ContainsKey("message"));
+            }
+        }
+
+        [TestMethod]
+        public async Task ShouldHandleInvalidJsonLinesWithSkip()
+        {
+            CancellationToken cancellationToken = default;
+            // Arrange
+            using var tempFile = new TempFile();
+            var lines = new[]
+            {
+                """{"valid": "json", "message": "This is valid"}""",
+                "This is not valid JSON",
+                """{"another": "valid", "message": "Another valid line"}"""
+            };
+
+            foreach (var line in lines)
+            {
+                await tempFile.AppendLine(line, Encoding.UTF8, cancellationToken);
+            }
+
+            var eventBuffer = new TestEventBuffer();
+            var logger = new TestLogger<LogFileService>();
+
+            // Act
+            using var serviceWrapper = CreateLogFileServiceWithJsonLines(tempFile.FileInfo.FullName, eventBuffer, logger, skipInvalidLines: true, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+
+            // Assert
+            Assert.AreEqual(2, eventBuffer.Records.Count, "Should skip invalid JSON line and process only valid ones");
+            
+            var records = eventBuffer.Records.ToArray();
+            var messages = records.Select(r => r.Data["message"].ToString()).OrderBy(m => m).ToArray();
+            Assert.AreEqual("Another valid line", messages[0]);
+            Assert.AreEqual("This is valid", messages[1]);
+        }
+
+        [TestMethod]
+        public async Task ShouldHandleInvalidJsonLinesWithoutSkip()
+        {
+            CancellationToken cancellationToken = default;
+            // Arrange
+            using var tempFile = new TempFile();
+            var lines = new[]
+            {
+                """{"valid": "json", "message": "This is valid"}""",
+                "This is not valid JSON",
+                """{"another": "valid", "message": "Another valid line"}"""
+            };
+
+            foreach (var line in lines)
+            {
+                await tempFile.AppendLine(line, Encoding.UTF8, cancellationToken);
+            }
+
+            var eventBuffer = new TestEventBuffer();
+            var logger = new TestLogger<LogFileService>();
+
+            // Act
+            using var serviceWrapper = CreateLogFileServiceWithJsonLines(tempFile.FileInfo.FullName, eventBuffer, logger, skipInvalidLines: false, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+
+            // Assert
+            Assert.AreEqual(3, eventBuffer.Records.Count, "Should process all lines, including invalid JSON");
+            
+            var records = eventBuffer.Records.ToArray();
+            
+            // Find records by their content type
+            var validRecords = records.Where(r => r.Data.ContainsKey("message") && r.Data["message"].ToString()!.Contains("valid")).ToArray();
+            var invalidRecord = records.FirstOrDefault(r => r.Data.ContainsKey("RawContent"));
+            
+            Assert.AreEqual(2, validRecords.Length, "Should have 2 valid JSON records");
+            Assert.IsNotNull(invalidRecord, "Should have 1 invalid JSON record");
+            Assert.AreEqual("This is not valid JSON", invalidRecord.Data["RawContent"]);
+            Assert.IsTrue(invalidRecord.Data.ContainsKey("ParseError"));
+            
+            // Check the valid records have expected messages
+            var messages = validRecords.Select(r => r.Data["message"].ToString()).OrderBy(m => m).ToArray();
+            Assert.AreEqual("Another valid line", messages[0]);
+            Assert.AreEqual("This is valid", messages[1]);
+        }
+
+        [TestMethod]
+        public async Task ShouldFlattenNestedJson()
+        {
+            CancellationToken cancellationToken = default;
+            // Arrange
+            using var tempFile = new TempFile();
+            var jsonLine = """{"user": {"id": 123, "name": "John"}, "request": {"method": "GET", "path": "/api/users"}}""";
+            await tempFile.AppendLine(jsonLine, Encoding.UTF8, cancellationToken);
+
+            var eventBuffer = new TestEventBuffer();
+            var logger = new TestLogger<LogFileService>();
+
+            // Act
+            using var serviceWrapper = CreateLogFileServiceWithJsonLines(tempFile.FileInfo.FullName, eventBuffer, logger, startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+
+            // Assert
+            Assert.AreEqual(1, eventBuffer.Records.Count);
+            var record = eventBuffer.Records.First();
+            
+            Assert.AreEqual(123L, record.Data["user_id"]);
+            Assert.AreEqual("John", record.Data["user_name"]);
+            Assert.AreEqual("GET", record.Data["request_method"]);
+            Assert.AreEqual("/api/users", record.Data["request_path"]);
+        }
+
+        [TestMethod]
+        public async Task ShouldExtractTimestampField()
+        {
+            CancellationToken cancellationToken = default;
+            // Arrange
+            using var tempFile = new TempFile();
+            var jsonLine = """{"ts": "2023-01-01T10:00:00Z", "message": "Test message"}""";
+            await tempFile.AppendLine(jsonLine, Encoding.UTF8, cancellationToken);
+
+            var eventBuffer = new TestEventBuffer();
+            var logger = new TestLogger<LogFileService>();
+
+            // Act
+            using var serviceWrapper = CreateLogFileServiceWithJsonLines(tempFile.FileInfo.FullName, eventBuffer, logger, timestampField: "ts", startAtBeginning: true);
+            await serviceWrapper.Service.ProcessFilesAsync(cancellationToken);
+
+            // Assert
+            Assert.AreEqual(1, eventBuffer.Records.Count);
+            var record = eventBuffer.Records.First();
+            
+            Assert.AreEqual("2023-01-01T10:00:00Z", record.Data["ts"]);
+            Assert.IsTrue(record.Data.ContainsKey("ParsedTimestamp"));
+            var parsedTimestamp = (DateTimeOffset)record.Data["ParsedTimestamp"];
+            Assert.AreEqual(new DateTimeOffset(2023, 1, 1, 10, 0, 0, TimeSpan.Zero), parsedTimestamp);
+        }
+
+        private static TestServiceWrapper CreateLogFileServiceWithJsonLines(string filePath, TestEventBuffer eventBuffer, TestLogger<LogFileService> logger, bool skipInvalidLines = true, string? timestampField = null, string? messageField = null, bool startAtBeginning = false)
+        {
+            var workingDirectory = Path.GetDirectoryName(filePath)!;
+            var relativePath = Path.GetFileName(filePath);
+            var tempDirectoryPath = Path.Combine(Path.GetTempPath(), $"test-temp-{Guid.NewGuid()}");
+
+            var config = new LogFileServiceConfiguration
+            {
+                Enabled = true,
+                Include = new[] { relativePath },
+                WorkingDirectory = workingDirectory,
+                GlobMinimumCooldownMs = 100,
+                StartAtBeginning = startAtBeginning,
+                JsonLines = new JsonLinesConfiguration
+                {
+                    Enabled = true,
+                    SkipInvalidLines = skipInvalidLines,
+                    TimestampField = timestampField,
+                    MessageField = messageField
+                }
+            };
+
+            var sourcesConfig = new SourcesConfiguration { LogFile = config };
+            var options = Options.Create(sourcesConfig);
+            var outputOptions = Options.Create(new OutputConfiguration() { DataPath = tempDirectoryPath });
+
+            var service = new LogFileService(options, outputOptions, eventBuffer, logger);
+            return new TestServiceWrapper(service, tempDirectoryPath);
+        }
     }
 
     internal sealed class TestEventBuffer : IEventBuffer

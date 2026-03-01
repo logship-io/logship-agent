@@ -100,6 +100,11 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("SyslogTcp")]
         [ConfigurationKeyName("SyslogTcp")]
         public SyslogTcpConfiguration? SyslogTcp { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("Internals")]
+        [ConfigurationKeyName("Internals")]
+        public InternalMetricsConfiguration? Internals { get; set; }
     }
 
     public class SyslogTcpConfiguration : BaseInputConfiguration
@@ -346,6 +351,17 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("counters")]
 		[ConfigurationKeyName("counters")]
         public List<string> Counters { get; set; } = new List<string>();
+    }
+
+    public sealed class InternalMetricsConfiguration : BaseIntervalInputConfiguration
+    {
+        [JsonPropertyName("enableMetrics")]
+        [ConfigurationKeyName("enableMetrics")]
+        public bool EnableMetrics { get; set; } = true;
+
+        [JsonPropertyName("enableTracing")]
+        [ConfigurationKeyName("enableTracing")]
+        public bool EnableTracing { get; set; } = true;
     }
 }
 

@@ -1,0 +1,109 @@
+{
+  "metadata": {
+    "accountId": "00000000-0000-0000-0000-000000000000",
+    "id": "10000000-0000-0000-0000-000000000001",
+    "name": "Agent Internal Metrics"
+  },
+  "variables": [],
+  "charts": [
+    {
+      "itemId": "10000001-0001-0001-0001-000000000001",
+      "coordinate": { "x": 0, "y": 0 },
+      "dimension": { "width": 4, "height": 1 },
+      "content": {
+        "type": "Markdown",
+        "markdown": {
+          "content": "## Agent Internal Metrics\nBuffer, flush, and sink metrics collected via `System.Diagnostics.Metrics` instrumentation."
+        }
+      }
+    },
+    {
+      "itemId": "10000001-0001-0001-0001-000000000002",
+      "coordinate": { "x": 0, "y": 1 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.metrics\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where instrument == 'logship.agent.buffer.current_size'\n| summarize current_size = agg_max(value) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, current_size, machine\n| order by timestamp asc\n| render timechart with (title = \"Buffer Current Size\", fill = true, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000001-0001-0001-0001-000000000003",
+      "coordinate": { "x": 2, "y": 1 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.metrics\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where instrument == 'logship.agent.buffer.maximum_size'\n| summarize max_size = agg_max(value) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, max_size, machine\n| order by timestamp asc\n| render timechart with (title = \"Buffer Maximum Size\", fill = false, lineWidth = 2, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000001-0001-0001-0001-000000000004",
+      "coordinate": { "x": 0, "y": 2 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.metrics\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where instrument == 'logship.agent.buffer.records_added'\n| summarize records_added = sum(value) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, records_added, machine\n| order by timestamp asc\n| render timechart with (title = \"Records Added to Buffer\", stacked = true, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000001-0001-0001-0001-000000000005",
+      "coordinate": { "x": 2, "y": 2 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.metrics\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where instrument == 'logship.agent.buffer.records_dropped'\n| summarize records_dropped = sum(value) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, records_dropped, machine\n| order by timestamp asc\n| render timechart with (title = \"Records Dropped (Buffer Overflow)\", stacked = true, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000001-0001-0001-0001-000000000006",
+      "coordinate": { "x": 0, "y": 3 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.metrics\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where instrument == 'logship.agent.sink.flush_count'\n| summarize flush_count = sum(value) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, flush_count, machine\n| order by timestamp asc\n| render timechart with (title = \"Flush Operations\", legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000001-0001-0001-0001-000000000007",
+      "coordinate": { "x": 2, "y": 3 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.metrics\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where instrument == 'logship.agent.sink.flush_duration'\n| summarize avg_duration = avg(value), p95 = percentile(value, 95) by timestamp = bin(timestamp, bucketSize), machine\n| multi-project (timestamp:datetime, value:double, metric:string, machine:string) [\n    timestamp, avg_duration, \"avg_duration\", machine,\n    timestamp, p95, \"p95\", machine\n]\n| order by timestamp asc\n| render timechart with (title = \"Flush Duration (ms)\", fill = false, lineWidth = 2, legend = true, yUnit = \"milliseconds\", spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000001-0001-0001-0001-000000000008",
+      "coordinate": { "x": 0, "y": 4 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.metrics\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where instrument == 'logship.agent.sink.flush_success' or instrument == 'logship.agent.sink.flush_failure'\n| summarize count = sum(value) by timestamp = bin(timestamp, bucketSize), instrument\n| project timestamp, count, instrument\n| order by timestamp asc\n| render timechart with (title = \"Flush Success vs Failure\", stacked = true, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000001-0001-0001-0001-000000000009",
+      "coordinate": { "x": 2, "y": 4 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.metrics\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where instrument == 'logship.agent.buffer.records_flushed'\n| summarize records_flushed = sum(value) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, records_flushed, machine\n| order by timestamp asc\n| render timechart with (title = \"Records Flushed from Buffer\", stacked = true, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    }
+  ]
+}

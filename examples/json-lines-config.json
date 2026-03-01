@@ -1,0 +1,14 @@
+{
+  "LogFile": {
+    "enabled": true,
+    "include": ["*.jsonl", "*.log"],
+    "workingDirectory": "/var/log",
+    "startAtBeginning": true,
+    "jsonLines": {
+      "enabled": true,
+      "skipInvalidLines": true,
+      "timestampField": "timestamp",
+      "messageField": "message"
+    }
+  }
+}

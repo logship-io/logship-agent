@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "accountId": "00000000-0000-0000-0000-000000000000",
+    "id": "10000000-0000-0000-0000-000000000002",
+    "name": "Agent Process Health"
+  },
+  "variables": [],
+  "charts": [
+    {
+      "itemId": "10000002-0001-0001-0001-000000000001",
+      "coordinate": { "x": 0, "y": 0 },
+      "dimension": { "width": 4, "height": 1 },
+      "content": {
+        "type": "Markdown",
+        "markdown": {
+          "content": "## Agent Process Health\nMemory, GC, CPU, and threading metrics for the logship agent process."
+        }
+      }
+    },
+    {
+      "itemId": "10000002-0001-0001-0001-000000000002",
+      "coordinate": { "x": 0, "y": 1 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.process\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize workingSet = agg_max(workingSetBytes), privateMemory = agg_max(privateMemoryBytes) by timestamp = bin(timestamp, bucketSize), machine\n| multi-project (timestamp:datetime, value:double, metric:string, machine:string) [\n    timestamp, workingSet, \"workingSet\", machine,\n    timestamp, privateMemory, \"privateMemory\", machine\n]\n| order by timestamp asc\n| render timechart with (title = \"Process Memory Usage\", fill = true, legend = true, yUnit = \"bytes\", spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000002-0001-0001-0001-000000000003",
+      "coordinate": { "x": 2, "y": 1 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.process\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize gcHeap = agg_max(gcHeapSizeBytes), gcAllocated = agg_max(gcTotalAllocatedBytes) by timestamp = bin(timestamp, bucketSize), machine\n| multi-project (timestamp:datetime, value:double, metric:string, machine:string) [\n    timestamp, gcHeap, \"gcHeap\", machine,\n    timestamp, gcAllocated, \"gcAllocated\", machine\n]\n| order by timestamp asc\n| render timechart with (title = \"GC Heap & Total Allocated\", fill = false, lineWidth = 2, legend = true, yUnit = \"bytes\", spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000002-0001-0001-0001-000000000004",
+      "coordinate": { "x": 0, "y": 2 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.process\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize gen0 = agg_max(gen0Collections), gen1 = agg_max(gen1Collections), gen2 = agg_max(gen2Collections) by timestamp = bin(timestamp, bucketSize), machine\n| multi-project (timestamp:datetime, value:double, metric:string, machine:string) [\n    timestamp, gen0, \"gen0\", machine,\n    timestamp, gen1, \"gen1\", machine,\n    timestamp, gen2, \"gen2\", machine\n]\n| order by timestamp asc\n| render timechart with (title = \"GC Collections by Generation\", stacked = true, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000002-0001-0001-0001-000000000005",
+      "coordinate": { "x": 2, "y": 2 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.process\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize fragmentation = agg_max(gcFragmentationBytes) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, fragmentation, machine\n| order by timestamp asc\n| render timechart with (title = \"GC Fragmentation\", fill = true, legend = true, yUnit = \"bytes\", spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000002-0001-0001-0001-000000000006",
+      "coordinate": { "x": 0, "y": 3 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.process\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize threads = agg_max(threadCount) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, threads, machine\n| order by timestamp asc\n| render timechart with (title = \"Thread Count\", fill = false, lineWidth = 2, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000002-0001-0001-0001-000000000007",
+      "coordinate": { "x": 2, "y": 3 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.process\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize handles = agg_max(handleCount) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, handles, machine\n| order by timestamp asc\n| render timechart with (title = \"Handle Count\", fill = false, lineWidth = 2, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000002-0001-0001-0001-000000000008",
+      "coordinate": { "x": 0, "y": 4 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.process\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize cpuMs = agg_max(totalProcessorTimeMs) by timestamp = bin(timestamp, bucketSize), machine\n| project timestamp, cpuMs, machine\n| order by timestamp asc\n| render timechart with (title = \"Total CPU Time\", fill = false, lineWidth = 2, legend = true, yUnit = \"milliseconds\", spanGaps = \"auto\")"
+        }
+      }
+    }
+  ]
+}

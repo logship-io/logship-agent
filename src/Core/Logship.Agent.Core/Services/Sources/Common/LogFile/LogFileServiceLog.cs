@@ -67,5 +67,11 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
 
         [LoggerMessage(LogLevel.Error, "Failed to write checkpoint {Checkpoint}")]
         public static partial void WriteCheckPointError(ILogger logger, string checkpoint, Exception ex);
+
+        [LoggerMessage(LogLevel.Warning, "JSON parsing error in file {FilePath} at line {LineNumber}")]
+        public static partial void JsonParseError(ILogger logger, string filePath, long lineNumber, Exception ex);
+
+        [LoggerMessage(LogLevel.Debug, "Successfully parsed JSON line in file {FilePath} at line {LineNumber}")]
+        public static partial void JsonLineParsed(ILogger logger, string filePath, long lineNumber);
     }
 }

@@ -1,0 +1,87 @@
+{
+  "metadata": {
+    "accountId": "00000000-0000-0000-0000-000000000000",
+    "id": "10000000-0000-0000-0000-000000000003",
+    "name": "Agent Trace Explorer"
+  },
+  "variables": [],
+  "charts": [
+    {
+      "itemId": "10000003-0001-0001-0001-000000000001",
+      "coordinate": { "x": 0, "y": 0 },
+      "dimension": { "width": 4, "height": 1 },
+      "content": {
+        "type": "Markdown",
+        "markdown": {
+          "content": "## Agent Trace Explorer\nDistributed trace spans from `System.Diagnostics.ActivitySource` instrumentation on flush, HTTP push, and sink operations."
+        }
+      }
+    },
+    {
+      "itemId": "10000003-0001-0001-0001-000000000002",
+      "coordinate": { "x": 0, "y": 1 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.traces\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize span_count = count() by timestamp = bin(timestamp, bucketSize), operationName\n| project timestamp, span_count, operationName\n| order by timestamp asc\n| render timechart with (title = \"Trace Spans by Operation\", stacked = true, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000003-0001-0001-0001-000000000003",
+      "coordinate": { "x": 2, "y": 1 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "logship.agent.traces\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize count = count() by status\n| project count, status\n| order by count desc\n| render piechart with (title = \"Span Status Distribution\", kind = \"doughnut\", legend = true)"
+        }
+      }
+    },
+    {
+      "itemId": "10000003-0001-0001-0001-000000000004",
+      "coordinate": { "x": 0, "y": 2 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.traces\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where operationName == 'Flush'\n| summarize avg_duration = avg(durationMs), p95_duration = percentile(durationMs, 95), max_duration = agg_max(durationMs) by timestamp = bin(timestamp, bucketSize), machine\n| multi-project (timestamp:datetime, value:double, metric:string, machine:string) [\n    timestamp, avg_duration, \"avg_duration\", machine,\n    timestamp, p95_duration, \"p95_duration\", machine,\n    timestamp, max_duration, \"max_duration\", machine\n]\n| order by timestamp asc\n| render timechart with (title = \"Flush Span Duration\", fill = false, lineWidth = 2, legend = true, yUnit = \"milliseconds\", spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000003-0001-0001-0001-000000000005",
+      "coordinate": { "x": 2, "y": 2 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.traces\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where operationName == 'HttpPush'\n| summarize avg_duration = avg(durationMs), p95_duration = percentile(durationMs, 95), max_duration = agg_max(durationMs) by timestamp = bin(timestamp, bucketSize), machine\n| multi-project (timestamp:datetime, value:double, metric:string, machine:string) [\n    timestamp, avg_duration, \"avg_duration\", machine,\n    timestamp, p95_duration, \"p95_duration\", machine,\n    timestamp, max_duration, \"max_duration\", machine\n]\n| order by timestamp asc\n| render timechart with (title = \"HTTP Push Span Duration\", fill = false, lineWidth = 2, legend = true, yUnit = \"milliseconds\", spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000003-0001-0001-0001-000000000006",
+      "coordinate": { "x": 0, "y": 3 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "let duration = $__endTime() - $__startTime();\nlet bucketSize = case(duration > 7d, 1d, duration > 1d, 1h, duration > 6h, 30m, duration > 1h, 5m, 1m);\nlogship.agent.traces\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| where status == 'Error'\n| summarize error_count = count() by timestamp = bin(timestamp, bucketSize), operationName\n| project timestamp, error_count, operationName\n| order by timestamp asc\n| render timechart with (title = \"Error Spans by Operation\", stacked = true, legend = true, spanGaps = \"auto\")"
+        }
+      }
+    },
+    {
+      "itemId": "10000003-0001-0001-0001-000000000007",
+      "coordinate": { "x": 2, "y": 3 },
+      "dimension": { "width": 2, "height": 1 },
+      "content": {
+        "type": "Kusto",
+        "kusto": {
+          "query": "logship.agent.traces\n| where timestamp > $__startTime() and timestamp <= $__endTime()\n| summarize avg_duration = avg(durationMs), p50 = percentile(durationMs, 50), p95 = percentile(durationMs, 95), p99 = percentile(durationMs, 99), span_count = count() by operationName, source\n| project operationName, source, span_count, avg_duration, p50, p95, p99\n| order by span_count desc\n| render table with (title = \"Span Duration Summary\")"
+        }
+      }
+    }
+  ]
+}
