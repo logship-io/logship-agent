@@ -9,6 +9,12 @@ RUN git submodule update --init --recursive
 RUN dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -o out
 
 FROM $RUNTIME_IMAGE
+
+LABEL org.opencontainers.image.source="https://github.com/logship-io/logship-agent"
+LABEL org.opencontainers.image.description="Logship Agent"
+LABEL org.opencontainers.image.vendor="Logship"
+LABEL org.opencontainers.image.title="logship-agent"
+
 RUN apt-get update && apt-get install libsystemd-dev -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build-env /app/out .
