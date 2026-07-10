@@ -14,6 +14,7 @@ using Logship.Agent.Core.Services.Sources.Common.Otlp;
 using Logship.Agent.Core.Services.Sources.Common.Udp;
 using Logship.Agent.Core.Services.Sources.Linux.JournalCtl;
 using Logship.Agent.Core.Services.Sources.Linux.Proc;
+using Logship.Agent.Core.Services.Sources.Linux.Security;
 using Logship.Agent.Core.Services.Sources.Linux.Syslog;
 using Logship.Agent.Core.Services.Sources.Windows.Etw;
 using Microsoft.Extensions.DependencyInjection;
@@ -75,6 +76,10 @@ namespace Logship.Agent.Core.Services
                 .AddHostedService<MQTTListenerService>()
                 .AddHostedService<SyslogTcpReceiverService>()
                 .AddHostedService<InternalMetricsService>()
+                .AddHostedService<LinuxAuthEventsService>()
+                .AddHostedService<LinuxSshPostureService>()
+                .AddHostedService<LinuxPersistenceInventoryService>()
+                .AddHostedService<LinuxDockerService>()
             ;
 
             return @this;

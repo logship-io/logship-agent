@@ -105,6 +105,26 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("Internals")]
         [ConfigurationKeyName("Internals")]
         public InternalMetricsConfiguration? Internals { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("Linux.AuthEvents")]
+        [ConfigurationKeyName("Linux.AuthEvents")]
+        public LinuxAuthEventsConfiguration? LinuxAuthEvents { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("Linux.SshPosture")]
+        [ConfigurationKeyName("Linux.SshPosture")]
+        public LinuxSshPostureConfiguration? LinuxSshPosture { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("Linux.PersistenceInventory")]
+        [ConfigurationKeyName("Linux.PersistenceInventory")]
+        public LinuxPersistenceInventoryConfiguration? LinuxPersistenceInventory { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("Linux.Docker")]
+        [ConfigurationKeyName("Linux.Docker")]
+        public LinuxDockerConfiguration? LinuxDocker { get; set; }
     }
 
     public class SyslogTcpConfiguration : BaseInputConfiguration
@@ -362,6 +382,97 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("enableTracing")]
         [ConfigurationKeyName("enableTracing")]
         public bool EnableTracing { get; set; } = true;
+    }
+
+    public sealed class LinuxAuthEventsConfiguration : BaseIntervalInputConfiguration
+    {
+        [JsonPropertyName("logPaths")]
+        [ConfigurationKeyName("logPaths")]
+        public List<string> LogPaths { get; set; } = new List<string>
+        {
+            "/var/log/auth.log",
+            "/var/log/secure",
+        };
+
+        [JsonPropertyName("startAtEnd")]
+        [ConfigurationKeyName("startAtEnd")]
+        public bool StartAtEnd { get; set; } = true;
+    }
+
+    public sealed class LinuxSshPostureConfiguration : BaseIntervalInputConfiguration
+    {
+        [JsonPropertyName("configPath")]
+        [ConfigurationKeyName("configPath")]
+        public string ConfigPath { get; set; } = "/etc/ssh/sshd_config";
+    }
+
+    public sealed class LinuxPersistenceInventoryConfiguration : BaseIntervalInputConfiguration
+    {
+        [JsonPropertyName("systemdDirectories")]
+        [ConfigurationKeyName("systemdDirectories")]
+        public List<string> SystemdDirectories { get; set; } = new List<string>
+        {
+            "/etc/systemd/system",
+            "/usr/lib/systemd/system",
+            "/lib/systemd/system",
+        };
+
+        [JsonPropertyName("cronDirectories")]
+        [ConfigurationKeyName("cronDirectories")]
+        public List<string> CronDirectories { get; set; } = new List<string>
+        {
+            "/etc/cron.d",
+            "/etc/cron.daily",
+            "/etc/cron.hourly",
+            "/etc/cron.monthly",
+            "/etc/cron.weekly",
+            "/var/spool/cron",
+            "/var/spool/cron/crontabs",
+        };
+
+        [JsonPropertyName("profilePaths")]
+        [ConfigurationKeyName("profilePaths")]
+        public List<string> ProfilePaths { get; set; } = new List<string>
+        {
+            "/etc/profile",
+            "/etc/profile.d",
+            "/etc/bash.bashrc",
+            "/etc/zsh/zshrc",
+            "/root/.bashrc",
+            "/root/.profile",
+        };
+
+        [JsonPropertyName("rcLocalPath")]
+        [ConfigurationKeyName("rcLocalPath")]
+        public string RcLocalPath { get; set; } = "/etc/rc.local";
+    }
+
+    public sealed class LinuxDockerConfiguration : BaseIntervalInputConfiguration
+    {
+        public LinuxDockerConfiguration()
+        {
+            this.Enabled = false;
+        }
+
+        [JsonPropertyName("useDockerSocket")]
+        [ConfigurationKeyName("useDockerSocket")]
+        public bool UseDockerSocket { get; set; } = true;
+
+        [JsonPropertyName("collectContainerLogs")]
+        [ConfigurationKeyName("collectContainerLogs")]
+        public bool CollectContainerLogs { get; set; } = true;
+
+        [JsonPropertyName("collectDockerEvents")]
+        [ConfigurationKeyName("collectDockerEvents")]
+        public bool CollectDockerEvents { get; set; } = true;
+
+        [JsonPropertyName("dockerSocketPath")]
+        [ConfigurationKeyName("dockerSocketPath")]
+        public string DockerSocketPath { get; set; } = "/var/run/docker.sock";
+
+        [JsonPropertyName("jsonLogRoot")]
+        [ConfigurationKeyName("jsonLogRoot")]
+        public string JsonLogRoot { get; set; } = "/var/lib/docker/containers";
     }
 }
 
