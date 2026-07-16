@@ -66,6 +66,7 @@ namespace Logship.Agent.Core.Services
                 .AddHostedService<ProcMemReaderService>()
                 .AddHostedService<ProcFileReaderService>()
                 .AddHostedService<ProcModulesReaderService>()
+                .AddHostedService<SystemCpuService>()
                 .AddHostedService<SystemInformationService>()
                 .AddHostedService<SystemProcessInformationService>()
                 .AddHostedService<EtwService>()

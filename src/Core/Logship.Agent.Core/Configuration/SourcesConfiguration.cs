@@ -37,6 +37,11 @@ namespace Logship.Agent.Core.Configuration
         public SystemInformationConfiguration? SystemInformation { get; set; }
 
         [ValidateObjectMembers]
+        [JsonPropertyName("System.CPU")]
+        [ConfigurationKeyName("System.CPU")]
+        public SystemCpuConfiguration? SystemCpu { get; set; }
+
+        [ValidateObjectMembers]
         [JsonPropertyName("NetworkInformation")]
 		[ConfigurationKeyName("NetworkInformation")]
         public NetworkInformationConfiguration? Network { get; set; }
@@ -310,6 +315,10 @@ namespace Logship.Agent.Core.Configuration
     }
 
     public sealed class SystemInformationConfiguration : BaseIntervalInputConfiguration
+    {
+    }
+
+    public sealed class SystemCpuConfiguration : BaseIntervalInputConfiguration
     {
     }
 
