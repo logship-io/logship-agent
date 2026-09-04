@@ -118,7 +118,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
             {
                 var client = await this.tcpListener!.AcceptTcpClientAsync(token);
 
-                LogAcceptedTcpClient(this.Logger, client.Client.RemoteEndPoint);
+                LogAcceptedTcpClient(this.Logger, client.Client.RemoteEndPoint?.ToString());
                 _ = Task.Run(async () => await this.HandleClientAsync(client, token), token);
             }
         }
@@ -161,6 +161,6 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Syslog
         }
 
         [LoggerMessage(LogLevel.Information, "Accepted new TCP syslog client from {RemoteEndPoint}")]
-        private static partial void LogAcceptedTcpClient(ILogger logger, EndPoint? remoteEndPoint);
+        private static partial void LogAcceptedTcpClient(ILogger logger, string? remoteEndPoint);
     }
 }

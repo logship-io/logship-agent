@@ -130,6 +130,11 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("Linux.Docker")]
         [ConfigurationKeyName("Linux.Docker")]
         public LinuxDockerConfiguration? LinuxDocker { get; set; }
+
+        [ValidateObjectMembers]
+        [JsonPropertyName("Prometheus")]
+        [ConfigurationKeyName("Prometheus")]
+        public PrometheusConfiguration? Prometheus { get; set; }
     }
 
     public class SyslogTcpConfiguration : BaseInputConfiguration
@@ -454,6 +459,30 @@ namespace Logship.Agent.Core.Configuration
         [JsonPropertyName("rcLocalPath")]
         [ConfigurationKeyName("rcLocalPath")]
         public string RcLocalPath { get; set; } = "/etc/rc.local";
+    }
+
+    public sealed class PrometheusConfiguration : BaseInputConfiguration
+    {
+        [ValidateEnumeratedItems]
+        [JsonPropertyName("targets")]
+        [ConfigurationKeyName("targets")]
+        public List<PrometheusTargetConfiguration> Targets { get; set; } = new List<PrometheusTargetConfiguration>();
+    }
+
+    public sealed class PrometheusTargetConfiguration
+    {
+        [JsonPropertyName("endpoint")]
+        [ConfigurationKeyName("endpoint")]
+        public string Endpoint { get; set; } = string.Empty;
+
+        [PositiveTimeSpan]
+        [JsonPropertyName("interval")]
+        [ConfigurationKeyName("interval")]
+        public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(15);
+
+        [JsonPropertyName("headers")]
+        [ConfigurationKeyName("headers")]
+        public Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
     }
 
     public sealed class LinuxDockerConfiguration : BaseIntervalInputConfiguration

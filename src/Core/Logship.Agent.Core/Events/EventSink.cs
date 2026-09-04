@@ -5,6 +5,7 @@
 using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Records;
+using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
@@ -16,10 +17,10 @@ namespace Logship.Agent.Core.Events
     {
         internal static readonly Meter SinkMeter = new("Logship.Agent.Sink", "1.0.0");
         internal static readonly ActivitySource SinkActivitySource = new("Logship.Agent.Sink", "1.0.0");
-        private static readonly Counter<long> FlushCounter = SinkMeter.CreateCounter<long>("logship.agent.sink.flush_count", "flushes", "Total flush operations");
-        private static readonly Counter<long> FlushSuccessCounter = SinkMeter.CreateCounter<long>("logship.agent.sink.flush_success", "flushes", "Successful flush operations");
-        private static readonly Counter<long> FlushFailureCounter = SinkMeter.CreateCounter<long>("logship.agent.sink.flush_failure", "flushes", "Failed flush operations");
-        private static readonly Histogram<double> FlushDuration = SinkMeter.CreateHistogram<double>("logship.agent.sink.flush_duration", "ms", "Duration of flush operations in milliseconds");
+        private static readonly FlushCount FlushCounter = SinkMetrics.CreateFlushCount(SinkMeter);
+        private static readonly FlushSuccess FlushSuccessCounter = SinkMetrics.CreateFlushSuccess(SinkMeter);
+        private static readonly FlushFailure FlushFailureCounter = SinkMetrics.CreateFlushFailure(SinkMeter);
+        private static readonly FlushDurationHistogram FlushDuration = SinkMetrics.CreateFlushDuration(SinkMeter);
 
         private readonly int maximumFlushSize;
         private readonly IEventBuffer buffer;
@@ -181,6 +182,23 @@ namespace Logship.Agent.Core.Events
         {
             return buffer.NextAsync(token);
         }
+    }
+
+    internal static partial class SinkMetrics
+    {
+#pragma warning disable EXTEXP0003 // Unit is experimental in Microsoft.Extensions.Telemetry.Abstractions
+        [CounterAttribute<long>(Name = "logship.agent.sink.flush_count", Unit = "flushes")]
+        public static partial FlushCount CreateFlushCount(Meter meter);
+
+        [CounterAttribute<long>(Name = "logship.agent.sink.flush_success", Unit = "flushes")]
+        public static partial FlushSuccess CreateFlushSuccess(Meter meter);
+
+        [CounterAttribute<long>(Name = "logship.agent.sink.flush_failure", Unit = "flushes")]
+        public static partial FlushFailure CreateFlushFailure(Meter meter);
+
+        [HistogramAttribute<double>(Name = "logship.agent.sink.flush_duration", Unit = "ms")]
+        public static partial FlushDurationHistogram CreateFlushDuration(Meter meter);
+#pragma warning restore EXTEXP0003
     }
 
     internal static partial class EventSinkLog
