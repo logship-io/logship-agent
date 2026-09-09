@@ -105,7 +105,14 @@ namespace Logship.Agent.Core.Services.Sources.Common.Prometheus
                     record.Data["value"] = sample.Value;
                     foreach (var label in sample.Labels)
                     {
-                        var column = ReservedColumns.Contains(label.Key) ? "label_" + label.Key : label.Key;
+                        // Dots are stripped from column names downstream (see DataRecord.SanitizeRecord),
+                        // so map UTF-8 label names like "label.with.dots" to "label_with_dots" here.
+                        var column = label.Key.Replace('.', '_');
+                        if (ReservedColumns.Contains(column))
+                        {
+                            column = "label_" + column;
+                        }
+
                         record.Data[column] = label.Value;
                     }
 

@@ -20,7 +20,8 @@ namespace Logship.Agent.FileBasedTests.Prometheus
         private const string Payload = "# TYPE http_requests_total counter\n"
             + "http_requests_total{method=\"post\",code=\"200\"} 1027\n"
             + "http_request_duration_seconds_bucket{le=\"+Inf\"} 144320\n"
-            + "some_nan_metric NaN\n";
+            + "some_nan_metric NaN\n"
+            + "{\"utf8.metric\",\"label.with.dots\"=\"v\"} 5\n";
 
         [TestMethod]
         [Timeout(15000)]
@@ -63,6 +64,10 @@ namespace Logship.Agent.FileBasedTests.Prometheus
             var bucket = records.First(r => (string)r.Data["name"] == "http_request_duration_seconds_bucket");
             Assert.AreEqual("+Inf", bucket.Data["le"]);
             Assert.AreEqual(144320d, bucket.Data["value"]);
+
+            var utf8 = records.First(r => (string)r.Data["name"] == "utf8.metric");
+            Assert.AreEqual("v", utf8.Data["label_with_dots"]);
+            Assert.IsFalse(utf8.Data.ContainsKey("label.with.dots"));
         }
 
         [TestMethod]
