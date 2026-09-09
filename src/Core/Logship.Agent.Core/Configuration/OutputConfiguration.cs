@@ -12,12 +12,10 @@ namespace Logship.Agent.Core.Configuration
 {
     public sealed class OutputConfiguration
     {
-        public const string CONSOLEOUTPUT = "console";
-
         [Required]
         [JsonPropertyName("endpoint")]
 		[ConfigurationKeyName("endpoint")]
-        public string Endpoint { get; set; } = CONSOLEOUTPUT;
+        public string Endpoint { get; set; } = string.Empty;
 
         [Required]
         [JsonPropertyName("account")]

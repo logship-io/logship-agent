@@ -4,6 +4,7 @@
 
 using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Records;
+using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.Metrics;
@@ -13,9 +14,9 @@ namespace Logship.Agent.Core.Events
     internal sealed class InMemoryBuffer : IEventBuffer
     {
         internal static readonly Meter BufferMeter = new("Logship.Agent.Buffer", "1.0.0");
-        private static readonly Counter<long> RecordsAddedCounter = BufferMeter.CreateCounter<long>("logship.agent.buffer.records_added", "records", "Total records added to the buffer");
-        private static readonly Counter<long> RecordsDroppedCounter = BufferMeter.CreateCounter<long>("logship.agent.buffer.records_dropped", "records", "Total records dropped due to buffer overflow");
-        private static readonly Counter<long> RecordsFlushedCounter = BufferMeter.CreateCounter<long>("logship.agent.buffer.records_flushed", "records", "Total records retrieved from the buffer");
+        private static readonly RecordsAdded RecordsAddedCounter = BufferMetrics.CreateRecordsAdded(BufferMeter);
+        private static readonly RecordsDropped RecordsDroppedCounter = BufferMetrics.CreateRecordsDropped(BufferMeter);
+        private static readonly RecordsFlushed RecordsFlushedCounter = BufferMetrics.CreateRecordsFlushed(BufferMeter);
 
         private List<DataRecord> bag;
         private int maximumBufferSize;
@@ -132,6 +133,20 @@ namespace Logship.Agent.Core.Events
         {
             throw new NotImplementedException();
         }
+    }
+
+    internal static partial class BufferMetrics
+    {
+#pragma warning disable EXTEXP0003 // Unit is experimental in Microsoft.Extensions.Telemetry.Abstractions
+        [CounterAttribute<long>(Name = "logship.agent.buffer.records_added", Unit = "records")]
+        public static partial RecordsAdded CreateRecordsAdded(Meter meter);
+
+        [CounterAttribute<long>(Name = "logship.agent.buffer.records_dropped", Unit = "records")]
+        public static partial RecordsDropped CreateRecordsDropped(Meter meter);
+
+        [CounterAttribute<long>(Name = "logship.agent.buffer.records_flushed", Unit = "records")]
+        public static partial RecordsFlushed CreateRecordsFlushed(Meter meter);
+#pragma warning restore EXTEXP0003
     }
 
     internal static partial class MemoryBufferLog

@@ -11,6 +11,7 @@ using Logship.Agent.Core.Services.Sources.Common.LogFile;
 using Logship.Agent.Core.Services.Sources.Common.MQTT;
 using Logship.Agent.Core.Services.Sources.Common.Nmap;
 using Logship.Agent.Core.Services.Sources.Common.Otlp;
+using Logship.Agent.Core.Services.Sources.Common.Prometheus;
 using Logship.Agent.Core.Services.Sources.Common.Udp;
 using Logship.Agent.Core.Services.Sources.Linux.JournalCtl;
 using Logship.Agent.Core.Services.Sources.Linux.Proc;
@@ -18,8 +19,6 @@ using Logship.Agent.Core.Services.Sources.Linux.Security;
 using Logship.Agent.Core.Services.Sources.Linux.Syslog;
 using Logship.Agent.Core.Services.Sources.Windows.Etw;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Logship.Agent.Core.Services
 {
@@ -33,19 +32,7 @@ namespace Logship.Agent.Core.Services
                 .AddSingleton<OutputAuthenticator>()
                 .AddTransient<IOutputAuth>(_ => _.GetRequiredService<OutputAuthenticator>())
                 .AddTransient<IRefreshAuth>(_ => _.GetRequiredService<OutputAuthenticator>())
-                .AddSingleton<IEventOutput>(_ =>
-                {
-                    var config = _.GetRequiredService<IOptions<OutputConfiguration>>();
-                    if (config.Value.Endpoint.Equals(OutputConfiguration.CONSOLEOUTPUT, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return new ConsoleEventOutput(_.GetRequiredService<ILogger<ConsoleEventOutput>>());
-                    }
-
-                    return new LogshipEventOutput(config,
-                        _.GetRequiredService<OutputAuthenticator>(),
-                        _.GetRequiredService<IHttpClientFactory>(),
-                        _.GetRequiredService<ILogger<LogshipEventOutput>>());
-                })
+                .AddSingleton<IEventOutput, LogshipEventOutput>()
                 .AddSingleton<IReadOnlyDictionary<string, ExtractResourceAttributeValue>>(_ =>
                 {
                     return new Dictionary<string, ExtractResourceAttributeValue>()
@@ -81,6 +68,7 @@ namespace Logship.Agent.Core.Services
                 .AddHostedService<LinuxSshPostureService>()
                 .AddHostedService<LinuxPersistenceInventoryService>()
                 .AddHostedService<LinuxDockerService>()
+                .AddHostedService<PrometheusMetricsService>()
             ;
 
             return @this;
