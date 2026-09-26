@@ -15,7 +15,7 @@ LABEL org.opencontainers.image.description="Logship Agent"
 LABEL org.opencontainers.image.vendor="Logship"
 LABEL org.opencontainers.image.title="logship-agent"
 
-RUN apt-get update && apt-get install libsystemd-dev -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install libsystemd-dev libpcap0.8 iw iproute2 -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build-env /app/out .
 ENTRYPOINT ["./Logship.Agent.ConsoleHost"]

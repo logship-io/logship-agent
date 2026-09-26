@@ -69,6 +69,7 @@ namespace Logship.Agent.Core.Services
                 .AddHostedService<LinuxPersistenceInventoryService>()
                 .AddHostedService<LinuxDockerService>()
                 .AddHostedService<PrometheusMetricsService>()
+                .AddHostedService<Logship.Agent.Core.Services.Sources.Linux.Ieee80211.LinuxIeee80211Service>()
             ;
 
             return @this;
