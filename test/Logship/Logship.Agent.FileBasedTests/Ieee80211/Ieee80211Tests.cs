@@ -78,11 +78,84 @@ public sealed class Ieee80211Tests
     }
 
     [TestMethod]
-    public void FrequencyDiscoveryRespectsDisabledBandsAndKeepsPassiveChannels()
+    public void FrequencyDiscoveryRespectsDisabledChannelsAndKeepsAllSupportedBands()
     {
         string info = " * 2412 MHz [1] (20.0 dBm)\n * 2437 MHz [6] (disabled)\n * 5180 MHz [36] (no IR)\n * 5260 MHz [52] (radar detection)\n * 5955 MHz [1] (20 dBm)\n";
-        CollectionAssert.AreEqual(new[] { 2412, 5180, 5260 }, Ieee80211Adapter.ParseFrequencies(info).ToArray());
+        CollectionAssert.AreEqual(new[] { 2412, 5180, 5260, 5955 }, Ieee80211Adapter.ParseFrequencies(info).ToArray());
         Assert.AreEqual(14, Ieee80211FrameParser.FrequencyToChannel(2484));
+    }
+
+    [TestMethod]
+    public void FrequencyDiscoveryParsesDecimalIwOutput()
+    {
+        string info = """
+            Wiphy phy2
+                    Supported interface modes:
+                             * monitor
+                    Band 1:
+                            Bitrates (non-HT):
+                                    * 1.0 Mbps
+                                    * 54.0 Mbps
+                            Frequencies:
+                                    * 2412.0 MHz [1] (20.0 dBm)
+                                    * 2417.0 MHz [2] (20.0 dBm)
+                                    * 2422.0 MHz [3] (20.0 dBm)
+                                    * 2427.0 MHz [4] (20.0 dBm)
+                                    * 2432.0 MHz [5] (20.0 dBm)
+                                    * 2437.0 MHz [6] (20.0 dBm)
+                                    * 2442.0 MHz [7] (20.0 dBm)
+                                    * 2447.0 MHz [8] (20.0 dBm)
+                                    * 2452.0 MHz [9] (20.0 dBm)
+                                    * 2457.0 MHz [10] (20.0 dBm)
+                                    * 2462.0 MHz [11] (20.0 dBm)
+                                    * 2467.0 MHz [12] (20.0 dBm) (no IR)
+                                    * 2472.0 MHz [13] (20.0 dBm) (no IR)
+                                    * 2484.0 MHz [14] (20.0 dBm) (no IR)
+                    Band 2:
+                            VHT Capabilities (0x03d071a2):
+                                    short GI (80 MHz)
+                            Frequencies:
+                                    * 5180.0 MHz [36] (20.0 dBm) (no IR)
+                                    * 5200.0 MHz [40] (20.0 dBm) (no IR)
+                                    * 5220.0 MHz [44] (20.0 dBm) (no IR)
+                                    * 5240.0 MHz [48] (20.0 dBm) (no IR)
+                                    * 5260.0 MHz [52] (20.0 dBm) (no IR, radar detection)
+                                    * 5280.0 MHz [56] (20.0 dBm) (no IR, radar detection)
+                                    * 5300.0 MHz [60] (20.0 dBm) (no IR, radar detection)
+                                    * 5320.0 MHz [64] (20.0 dBm) (no IR, radar detection)
+                                    * 5500.0 MHz [100] (20.0 dBm) (no IR, radar detection)
+                                    * 5520.0 MHz [104] (20.0 dBm) (no IR, radar detection)
+                                    * 5540.0 MHz [108] (20.0 dBm) (no IR, radar detection)
+                                    * 5560.0 MHz [112] (20.0 dBm) (no IR, radar detection)
+                                    * 5580.0 MHz [116] (20.0 dBm) (no IR, radar detection)
+                                    * 5600.0 MHz [120] (20.0 dBm) (no IR, radar detection)
+                                    * 5620.0 MHz [124] (20.0 dBm) (no IR, radar detection)
+                                    * 5640.0 MHz [128] (20.0 dBm) (no IR, radar detection)
+                                    * 5660.0 MHz [132] (20.0 dBm) (no IR, radar detection)
+                                    * 5680.0 MHz [136] (20.0 dBm) (no IR, radar detection)
+                                    * 5700.0 MHz [140] (20.0 dBm) (no IR, radar detection)
+                                    * 5720.0 MHz [144] (20.0 dBm) (no IR, radar detection)
+                                    * 5745.0 MHz [149] (20.0 dBm) (no IR)
+                                    * 5765.0 MHz [153] (20.0 dBm) (no IR)
+                                    * 5785.0 MHz [157] (20.0 dBm) (no IR)
+                                    * 5805.0 MHz [161] (20.0 dBm) (no IR)
+                                    * 5825.0 MHz [165] (20.0 dBm) (no IR)
+                    Supported commands:
+                             * set_channel
+            """;
+        CollectionAssert.AreEqual(new[]
+        {
+            2412, 2417, 2422, 2427, 2432, 2437, 2442, 2447, 2452, 2457, 2462, 2467, 2472, 2484,
+            5180, 5200, 5220, 5240, 5260, 5280, 5300, 5320, 5500, 5520, 5540, 5560, 5580,
+            5600, 5620, 5640, 5660, 5680, 5700, 5720, 5745, 5765, 5785, 5805, 5825,
+        }, Ieee80211Adapter.ParseFrequencies(info).ToArray());
+    }
+
+    [TestMethod]
+    public void FrequencyDiscoveryHandlesMixedFormatsWithoutTruncatingFractionalValues()
+    {
+        string info = "\t*\t5180.0\tMHz [36] (no IR)\r\n * 2412 MHz [1]\r\n * 2412.00 MHz [1]\r\n * 2437.0 MHz [6] (disabled)\r\n * 5955.0 MHz [1]\r\n * 2417.5 MHz [2]\r\n";
+        CollectionAssert.AreEqual(new[] { 2412, 5180, 5955 }, Ieee80211Adapter.ParseFrequencies(info).ToArray());
     }
 
     [TestMethod]

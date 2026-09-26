@@ -36,7 +36,7 @@ internal sealed class Ieee80211Adapter(string device, Func<string, string[], Can
         var available = ParseFrequencies(capabilities);
         if (requested.Any(f => !available.Contains(f))) throw new IOException("Requested frequencies are not supported or are disabled by the regulatory domain.");
         var selected = available.Where(f => requested.Count == 0 || requested.Contains(f)).ToArray();
-        if (selected.Length == 0) throw new IOException("No enabled 2.4GHz or 5GHz frequencies available.");
+        if (selected.Length == 0) throw new IOException("No enabled frequencies available.");
         // Set before the first mutation so partial setup is also restored.
         changed = true;
         await CommandAsync("ip", ["link", "set", "dev", device, "down"], token);
@@ -46,10 +46,9 @@ internal sealed class Ieee80211Adapter(string device, Func<string, string[], Can
     }
 
     internal static IReadOnlyList<int> ParseFrequencies(string capabilities) =>
-        Regex.Matches(capabilities, @"(?m)^\s*\* (\d+) MHz[^\r\n]*", RegexOptions.CultureInvariant)
+        Regex.Matches(capabilities, @"(?m)^[\t ]*\*[\t ]+(\d+)(?:\.0+)?[\t ]+MHz\b[^\r\n]*", RegexOptions.CultureInvariant)
             .Where(m => !m.Value.Contains("disabled", StringComparison.OrdinalIgnoreCase))
             .Select(m => int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture))
-            .Where(f => (f >= 2400 && f <= 2500) || (f >= 4900 && f < 5925))
             .Distinct().Order().ToArray();
 
     public async Task TuneAsync(int frequency, CancellationToken token) =>
