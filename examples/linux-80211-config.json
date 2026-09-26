@@ -1,0 +1,11 @@
+{
+  "Sources": {
+    "Linux.80211": {
+      "enabled": true,
+      "interface": "wlan1",
+      "schema": "Linux.80211.Management",
+      "channelDwell": "00:00:00.250",
+      "frequenciesMHz": []
+    }
+  }
+}

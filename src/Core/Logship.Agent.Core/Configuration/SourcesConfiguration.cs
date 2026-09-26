@@ -17,6 +17,11 @@ namespace Logship.Agent.Core.Configuration
     public sealed class SourcesConfiguration
     {
         [ValidateObjectMembers]
+        [JsonPropertyName("Linux.80211")]
+        [ConfigurationKeyName("Linux.80211")]
+        public LinuxIeee80211Configuration? LinuxIeee80211 { get; set; }
+
+        [ValidateObjectMembers]
         [JsonPropertyName("Windows.ETW")]
 		[ConfigurationKeyName("Windows.ETW")]
         public WindowsETWConfiguration? WindowsETW { get; set; }
