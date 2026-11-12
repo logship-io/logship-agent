@@ -86,6 +86,44 @@ Check `docker logs logship-agent` for authentication errors and confirm records 
 - Connection failures: check the backend URL, port, TLS certificate, and container networking. The frontend URL is not the ingestion endpoint.
 - No file records: check the `/logs` mount, file permissions, and `include` pattern. With `startAtBeginning: false`, append a new line to a matching log file to test ingestion.
 
+## USB devices and connection events
+
+Enable the USB source on Windows or Linux by adding this entry under `Sources`:
+
+```json
+"USB": { "enabled": true, "interval": "00:00:30" }
+```
+
+USB collection is disabled by default. It covers storage, keyboards, cameras, hubs,
+and internal USB peripherals. Host controllers, root hubs, and individual interfaces
+of composite devices are excluded.
+
+`System.USB.Devices` publishes one record per connected device at startup and each
+inventory interval. Empty inventories produce no records. `System.USB.Events`
+publishes `Action` (`Connected` or `Disconnected`) and `DetectionMethod` (`Native`
+or `Reconciliation`). Existing devices at startup establish the baseline without
+connection events. Restarting does not replay changes from the time the agent was stopped.
+
+Both schemas contain `machine` and `DeviceId`, plus `VendorId`, `ProductId`,
+`Manufacturer`, `Product`, `SerialNumber`, and `Location` when available. Vendor
+and product IDs are four-digit lowercase hexadecimal strings. Device identity is
+platform-specific and identifies an attachment; it is not guaranteed across ports
+or machines. Timestamps represent agent observation time. There are no snapshot IDs
+or completion records; use events to track removals rather than absence of inventory rows.
+
+Windows uses Configuration Manager device notifications and needs no interactive
+desktop. Linux reads `/sys/bus/usb/devices` and uses `libudev.so.1` for notifications.
+If native monitoring is unavailable, the agent logs a warning, continues periodic
+inventory/change detection, and retries monitoring each interval. This fallback
+can miss brief connections. Failed scans retain previous state.
+
+Linux containers need read access to the host USB sysfs tree for inventory. Native
+notifications additionally require visibility of host udev events (typically the
+host network namespace for the netlink socket, with host `/run/udev` visible where
+required by the environment) and libudev installed in the container. A sysfs mount
+alone does not provide native events. Validate event delivery in the deployment;
+container isolation can prevent delivery even when subscription succeeds.
+
 ## Publishing images from CI
 
 The [Build & Release workflow](.github/workflows/podman-image.yml) runs when a `v*` Git tag is pushed. It builds the container once and publishes the release tag and `latest` to both `cr.logship.io/logship-agent` and GHCR.

@@ -47,6 +47,7 @@ namespace Logship.Agent.Core.Services
                 .AddHostedService<AgentHealthService>()
                 .AddHostedService<AgentPushService>()
                 .AddHostedService<DiskInformationService>()
+                .AddHostedService<Logship.Agent.Core.Services.Sources.Common.Usb.UsbService>()
                 .AddHostedService<HealthChecksService>()
                 .AddHostedService<JournalCtlService>()
                 .AddHostedService<NetworkInformationService>()
