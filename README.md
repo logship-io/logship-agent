@@ -124,6 +124,67 @@ required by the environment) and libudev installed in the container. A sysfs mou
 alone does not provide native events. Validate event delivery in the deployment;
 container isolation can prevent delivery even when subscription succeeds.
 
+## Storage, network, and power events
+
+The checked-in configuration enables three additional event sources on Windows and Linux:
+
+```json
+"StorageEvents": { "enabled": true, "interval": "00:00:05" },
+"NetworkEvents": { "enabled": true, "interval": "00:00:15" },
+"PowerEvents": { "enabled": true }
+```
+
+Each source can be disabled independently. Code defaults remain disabled when these
+sections are omitted. Existing `System.Storage` and `System.Network.*` inventory
+collectors keep their existing schemas and intervals.
+
+| Schema | Actions | Event-specific fields, when available |
+| --- | --- | --- |
+| `System.Storage.Events` | `DiskAdded`, `DiskRemoved`, `VolumeAdded`, `VolumeRemoved`, `Mounted`, `Unmounted` | `Kind`, `DeviceId`, `VolumeId`, `VolumeUuid`, `VolumeLabel`, `FileSystem`, `MountLocation`; Linux mounts also include `MountId` and `MountRoot` |
+| `System.Network.Events` | `InterfaceAdded`, `InterfaceRemoved`, `LinkUp`, `LinkDown`, `AddressAdded`, `AddressRemoved`, `RouteAdded`, `RouteRemoved` | `InterfaceIndex`, `InterfaceName`, `InterfaceId`, `Address`, `PrefixLength`, `Destination`, `Gateway`, `Metric`, `Table`, `RouteType` |
+| `System.Power.Events` | `Suspending`, `Resumed`, `ShutdownRequested` | Windows shutdowns may include `EventRecordId`, `SourceTimestamp`, `Process`, `Reason`, `ReasonCode`, `ShutdownType`, `Comment`, `User` |
+
+All records contain `machine`, `Action`, and `DetectionMethod` (`Native` or
+`Reconciliation`). Timestamps are agent observation times. Native means a direct
+notification or a scan triggered by one. There are no snapshot IDs. Startup
+establishes a baseline without synthetic arrival events, and cached metadata is
+used for removal events. A route metric change emits removal followed by addition.
+Windows route metrics are the route metric component, excluding the interface metric;
+`Table` is zero on Windows and identifies the routing table on Linux.
+
+Storage uses Windows disk/volume device-interface notifications or Linux udev block
+events. Mount locations are rescanned after notifications and every five seconds
+by default; brief mounts between scans can be missed. Linux includes bind and
+network mounts visible in the agent's mount namespace. Windows mount locations
+cover local volumes, including mounted folders; mapped network drives are excluded.
+USB storage may produce both USB events and storage events describing the same attachment.
+
+Network events use Windows IP Helper notifications or Linux route netlink and
+include virtual interfaces, IPv4/IPv6 unicast addresses, and routes. Interface
+indices identify the current interface lifetime and can be reused after removal.
+No packet capture or per-connection event collection is added.
+
+Failed storage/network scans retain prior state. Failed subscriptions retry every
+30 seconds while periodic reconciliation continues. Linux requires `libudev.so.1`
+for block notifications and access to sysfs/udev; the container image includes
+libudev. Host monitoring from containers additionally requires host mount/network
+visibility and native event access as described for USB above. Otherwise records
+describe the container's namespaces, and isolation may prevent native delivery.
+
+Power events use Windows suspend/resume callbacks and future User32 event 1074
+records from the System event log. Linux uses logind signals via `libsystemd.so.0`
+and the system D-Bus socket; logind must be running and accessible. Unavailable
+power sources log warnings and retry every 30 seconds independently. No polling
+fallback can reconstruct missed power transitions. Duplicate resume callbacks
+are suppressed; stopping only the agent does not generate a machine shutdown event.
+
+Suspension/shutdown notices request a serialized flush with a one-second deadline.
+After collectors stop, the output service attempts a final flush within the host's
+shutdown timeout, capped at five seconds. Delivery is best effort: no historical
+replay or durable queue is added, and abrupt shutdown or lost networking can prevent
+upload. `ShutdownRequested` reports intent, not proof of completed shutdown. Raw
+journal or ETW logs can contain related messages alongside these normalized events.
+
 ## Publishing images from CI
 
 The [Build & Release workflow](.github/workflows/podman-image.yml) runs when a `v*` Git tag is pushed. It builds the container once and publishes the release tag and `latest` to both `cr.logship.io/logship-agent` and GHCR.

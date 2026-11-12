@@ -40,6 +40,15 @@ namespace Logship.Agent.Core.Services
                 }
             }
         }
+
+        protected override async Task OnStop(CancellationToken token)
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            try { await eventSink.FlushAsync(timeout.Token); }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested) { }
+            catch (Exception ex) { AgentPushServiceLog.FlushError(Logger, ex); }
+        }
     }
 
     internal static partial class AgentPushServiceLog

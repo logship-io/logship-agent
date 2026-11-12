@@ -27,6 +27,7 @@ namespace Logship.Agent.Core.Events
         private readonly ILogger logger;
         private readonly IEventOutput eventOutput;
         private bool disposedValue;
+        private readonly SemaphoreSlim flushLock = new(1, 1);
 
         public EventSink(IOptions<OutputConfiguration> config, IEventOutput eventOutput, IEventBuffer buffer, ILogger<EventSink> logger)
         {
@@ -37,6 +38,13 @@ namespace Logship.Agent.Core.Events
         }
 
         public async Task FlushAsync(CancellationToken token)
+        {
+            await this.flushLock.WaitAsync(token);
+            try { await this.FlushCoreAsync(token); }
+            finally { this.flushLock.Release(); }
+        }
+
+        private async Task FlushCoreAsync(CancellationToken token)
         {
             if (token.IsCancellationRequested)
             {
@@ -54,10 +62,12 @@ namespace Logship.Agent.Core.Events
             var sw = Stopwatch.StartNew();
 
             EventSinkLog.FlushingRecords(this.logger, records.Count);
+            var started = 0;
             try
             {
                 foreach (var batch in records.Chunk(this.maximumFlushSize))
                 {
+                    started += batch.Length;
                     FlushCounter.Add(1);
                     using var flush = new EventSinkFlushContext(batch, onFailure: this.buffer.Add, logger);
                     flush.Success = await this.eventOutput.SendAsync(batch, token);
@@ -72,9 +82,13 @@ namespace Logship.Agent.Core.Events
                     }
                 }
             }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { /* noop */ }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                this.buffer.Add(records.Skip(started).ToArray());
+            }
             catch (Exception ex)
             {
+                this.buffer.Add(records.Skip(started).ToArray());
                 FlushFailureCounter.Add(1);
                 activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 EventSinkLog.Exception(this.logger, ex);
@@ -139,6 +153,7 @@ namespace Logship.Agent.Core.Events
             {
                 if (disposing)
                 {
+                    this.flushLock.Dispose();
                     if (this.eventOutput is IDisposable eventD)
                     {
                         eventD.Dispose();

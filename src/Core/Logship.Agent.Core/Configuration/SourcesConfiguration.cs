@@ -17,6 +17,14 @@ namespace Logship.Agent.Core.Configuration
     public sealed class SourcesConfiguration
     {
         [ValidateObjectMembers]
+        public StorageEventsConfiguration? StorageEvents { get; set; }
+
+        [ValidateObjectMembers]
+        public NetworkEventsConfiguration? NetworkEvents { get; set; }
+
+        public PowerEventsConfiguration? PowerEvents { get; set; }
+
+        [ValidateObjectMembers]
         [JsonPropertyName("USB")]
         [ConfigurationKeyName("USB")]
         public UsbConfiguration? USB { get; set; }

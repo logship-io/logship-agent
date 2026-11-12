@@ -106,7 +106,8 @@ internal sealed class Program
 
             await app.StartAsync(tokenSource.Token);
             ProgramExtensions.Log_AgentStarted(logger, watch.ElapsedMilliseconds);
-            await Task.Delay(-1, tokenSource.Token);
+            using var running = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token, app.Lifetime.ApplicationStopping);
+            await Task.Delay(Timeout.Infinite, running.Token);
         }
         catch (OperationCanceledException)
         {
