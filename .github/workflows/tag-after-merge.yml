@@ -1,17 +1,12 @@
 name: Tag after merge
 
 on:
-  pull_request_target:
-    types: [closed]
+  push:
     branches: [master]
 
 jobs:
   tag-and-dispatch:
-    if: >-
-      github.event.pull_request.merged &&
-      (contains(github.event.pull_request.labels.*.name, 'release:patch') ||
-       contains(github.event.pull_request.labels.*.name, 'release:minor') ||
-       contains(github.event.pull_request.labels.*.name, 'release:major'))
+    if: ${{ !github.event.created && !github.event.deleted && !github.event.forced }}
     runs-on: ubuntu-latest
     concurrency:
       group: logship-release-version
@@ -19,6 +14,7 @@ jobs:
     permissions:
       contents: write
       actions: write
+      pull-requests: read
     steps:
       # Use the base branch for ancestry checks without executing code from the checkout.
       - uses: actions/checkout@v6
@@ -26,46 +22,65 @@ jobs:
           ref: refs/heads/master
           fetch-depth: 0
 
-      - name: Tag the merged commit and start the release
+      - name: Tag labeled merges and start releases
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-          RELEASE_PATCH: ${{ contains(github.event.pull_request.labels.*.name, 'release:patch') }}
-          RELEASE_MINOR: ${{ contains(github.event.pull_request.labels.*.name, 'release:minor') }}
-          RELEASE_MAJOR: ${{ contains(github.event.pull_request.labels.*.name, 'release:major') }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
         run: |
-          case "$RELEASE_PATCH:$RELEASE_MINOR:$RELEASE_MAJOR" in
-            true:false:false) bump=patch ;;
-            false:true:false) bump=minor ;;
-            false:false:true) bump=major ;;
-            *)
-              echo "::error::Choose exactly one release label: release:patch, release:minor, or release:major."
-              exit 1
-              ;;
-          esac
-
-          if [[ ! "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]] || ! git merge-base --is-ancestor "$MERGE_SHA" HEAD; then
-            echo "::error::The PR merge commit is not in master."
+          if ! git merge-base --is-ancestor "$PUSH_BEFORE" "$PUSH_AFTER" ||
+             ! git merge-base --is-ancestor "$PUSH_AFTER" HEAD; then
+            echo "::error::The pushed range is no longer an update to master."
             exit 1
           fi
 
-          stable_tag_pattern='^v(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$'
-          tag=$(git tag --points-at "$MERGE_SHA" --sort=-version:refname |
-            awk -v pattern="$stable_tag_pattern" '$0 ~ pattern && !found++ { print }')
-          if [[ -z "$tag" ]]; then
-            latest=$(git tag --list --sort=-version:refname |
-              awk -v pattern="$stable_tag_pattern" '$0 ~ pattern && !found++ { print }')
-            latest=${latest:-v0.0.0}
-            IFS=. read -r major minor patch <<< "${latest#v}"
-            case "$bump" in
-              patch) tag="v$major.$minor.$((patch + 1))" ;;
-              minor) tag="v$major.$((minor + 1)).0" ;;
-              major) tag="v$((major + 1)).0.0" ;;
+          commits=$(git rev-list --first-parent --reverse "$PUSH_BEFORE..$PUSH_AFTER")
+          releases=()
+          while IFS= read -r commit; do
+            [[ -n "$commit" ]] || continue
+            pulls=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/commits/$commit/pulls?per_page=100")
+            labels=$(node -e '
+              const [commit, repository] = process.argv.slice(1);
+              const pages = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+              for (const pr of pages.flat()) {
+                if (!pr.merged_at || pr.merge_commit_sha !== commit ||
+                    pr.base.ref !== "master" || pr.base.repo.full_name !== repository) continue;
+                for (const { name } of pr.labels) {
+                  if (/^release:(patch|minor|major)$/i.test(name)) console.log(name.toLowerCase());
+                }
+              }
+            ' "$commit" "$GITHUB_REPOSITORY" <<< "$pulls")
+            case "$labels" in
+              '') continue ;;
+              release:patch|release:minor|release:major) releases+=("$commit:${labels#release:}") ;;
+              *)
+                echo "::error::Choose exactly one release label for the PR merged at $commit."
+                exit 1
+                ;;
             esac
-            git tag "$tag" "$MERGE_SHA"
-            git push origin "refs/tags/$tag"
-          fi
+          done <<< "$commits"
 
-          # A push authenticated with GITHUB_TOKEN does not trigger a tag-push workflow.
-          gh workflow run podman-image.yml --ref "$tag"
+          stable_tag_pattern='^v(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$'
+          for release in "${releases[@]}"; do
+            commit=${release%:*}
+            bump=${release##*:}
+            tag=$(git tag --points-at "$commit" --sort=-version:refname |
+              awk -v pattern="$stable_tag_pattern" '$0 ~ pattern && !found++ { print }')
+            if [[ -z "$tag" ]]; then
+              latest=$(git tag --list --sort=-version:refname |
+                awk -v pattern="$stable_tag_pattern" '$0 ~ pattern && !found++ { print }')
+              latest=${latest:-v0.0.0}
+              IFS=. read -r major minor patch <<< "${latest#v}"
+              case "$bump" in
+                patch) tag="v$major.$minor.$((patch + 1))" ;;
+                minor) tag="v$major.$((minor + 1)).0" ;;
+                major) tag="v$((major + 1)).0.0" ;;
+              esac
+              git tag "$tag" "$commit"
+              git push origin "refs/tags/$tag"
+            fi
+
+            # A push authenticated with GITHUB_TOKEN does not trigger a tag-push workflow.
+            gh workflow run podman-image.yml --ref "$tag"
+          done
