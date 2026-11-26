@@ -19,10 +19,24 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
         private long _currentPosition;
         private readonly byte[] _buffer;
         private readonly StringBuilder _lineBuffer;
-        private bool _disposed;
+        private volatile bool _disposed;
+        // Keep the gate usable by callbacks already queued when this reader is disposed.
+        // No AvailableWaitHandle is created; the managed semaphore is collected with the reader.
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Queued file-watcher callbacks can still acquire the gate after reader disposal.")]
+        private readonly SemaphoreSlim _processingGate = new(1, 1);
 
         public string FilePath => _filePath;
         public long CurrentPosition => _currentPosition;
+
+        internal async Task ProcessExclusivelyAsync(Func<Task> process, CancellationToken token)
+        {
+            await _processingGate.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                if (!_disposed) await process().ConfigureAwait(false);
+            }
+            finally { _processingGate.Release(); }
+        }
 
         public LogFileReader(string filePath, LogFileServiceConfiguration config, ILogger logger)
         {

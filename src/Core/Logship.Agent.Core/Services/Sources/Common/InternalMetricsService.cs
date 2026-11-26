@@ -14,6 +14,7 @@ namespace Logship.Agent.Core.Services.Sources.Common
 {
     internal sealed class InternalMetricsService : BaseIntervalInputService<InternalMetricsConfiguration>
     {
+        private const int MaxPendingRecords = 100;
         private readonly MeterListener? meterListener;
         private readonly ActivityListener? activityListener;
         private readonly object metricsLock = new();
@@ -25,7 +26,7 @@ namespace Logship.Agent.Core.Services.Sources.Common
             IOptions<SourcesConfiguration> config,
             IEventBuffer eventBuffer,
             ILogger<InternalMetricsService> logger)
-            : base(config.Value.Internals, eventBuffer, nameof(InternalMetricsService), logger)
+            : base(config.Value.Internals ?? new InternalMetricsConfiguration(), eventBuffer, nameof(InternalMetricsService), logger)
         {
             if (this.Enabled && this.Config.EnableMetrics)
             {
@@ -62,65 +63,73 @@ namespace Logship.Agent.Core.Services.Sources.Common
         private void OnMeasurement<T>(Instrument instrument, T measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state)
             where T : struct
         {
-            var now = DateTimeOffset.UtcNow;
-            var data = new Dictionary<string, object>
-            {
-                { "machine", Environment.MachineName },
-                { "meter", instrument.Meter.Name },
-                { "instrument", instrument.Name },
-                { "unit", instrument.Unit ?? string.Empty },
-                { "value", Convert.ToDouble(measurement, System.Globalization.CultureInfo.InvariantCulture) },
-            };
-
-            foreach (var tag in tags)
-            {
-                if (tag.Value != null)
-                {
-                    data[$"tag_{tag.Key}"] = tag.Value;
-                }
-            }
-
-            var record = new DataRecord("logship.agent.metrics", now, data);
             lock (metricsLock)
             {
-                pendingMetrics.Add(record);
+                // Measurements can arrive synchronously for every buffer operation.
+                if (pendingMetrics.Count >= MaxPendingRecords)
+                {
+                    return;
+                }
+
+                var data = new Dictionary<string, object>
+                {
+                    { "machine", Environment.MachineName },
+                    { "meter", instrument.Meter.Name },
+                    { "instrument", instrument.Name },
+                    { "unit", instrument.Unit ?? string.Empty },
+                    { "value", Convert.ToDouble(measurement, System.Globalization.CultureInfo.InvariantCulture) },
+                };
+
+                foreach (var tag in tags)
+                {
+                    if (tag.Value != null)
+                    {
+                        data[$"tag_{tag.Key}"] = tag.Value;
+                    }
+                }
+
+                pendingMetrics.Add(new DataRecord("logship.agent.metrics", DateTimeOffset.UtcNow, data));
             }
         }
 
         private void OnActivityStopped(Activity activity)
         {
-            var data = new Dictionary<string, object>
-            {
-                { "machine", Environment.MachineName },
-                { "traceId", activity.TraceId.ToString() },
-                { "spanId", activity.SpanId.ToString() },
-                { "parentSpanId", activity.ParentSpanId.ToString() },
-                { "operationName", activity.OperationName },
-                { "displayName", activity.DisplayName },
-                { "source", activity.Source.Name },
-                { "kind", activity.Kind.ToString() },
-                { "status", activity.Status.ToString() },
-                { "durationMs", activity.Duration.TotalMilliseconds },
-                { "startTime", activity.StartTimeUtc.ToString("O") },
-            };
-
-            if (activity.StatusDescription != null)
-            {
-                data["statusDescription"] = activity.StatusDescription;
-            }
-
-            foreach (var tag in activity.Tags)
-            {
-                if (tag.Value != null)
-                {
-                    data[$"tag_{tag.Key}"] = tag.Value;
-                }
-            }
-
-            var record = new DataRecord("logship.agent.traces", DateTimeOffset.UtcNow, data);
             lock (tracesLock)
             {
-                pendingTraces.Add(record);
+                if (pendingTraces.Count >= MaxPendingRecords)
+                {
+                    return;
+                }
+
+                var data = new Dictionary<string, object>
+                {
+                    { "machine", Environment.MachineName },
+                    { "traceId", activity.TraceId.ToString() },
+                    { "spanId", activity.SpanId.ToString() },
+                    { "parentSpanId", activity.ParentSpanId.ToString() },
+                    { "operationName", activity.OperationName },
+                    { "displayName", activity.DisplayName },
+                    { "source", activity.Source.Name },
+                    { "kind", activity.Kind.ToString() },
+                    { "status", activity.Status.ToString() },
+                    { "durationMs", activity.Duration.TotalMilliseconds },
+                    { "startTime", activity.StartTimeUtc.ToString("O") },
+                };
+
+                if (activity.StatusDescription != null)
+                {
+                    data["statusDescription"] = activity.StatusDescription;
+                }
+
+                foreach (var tag in activity.Tags)
+                {
+                    if (tag.Value != null)
+                    {
+                        data[$"tag_{tag.Key}"] = tag.Value;
+                    }
+                }
+
+                pendingTraces.Add(new DataRecord("logship.agent.traces", DateTimeOffset.UtcNow, data));
             }
         }
 
@@ -157,8 +166,10 @@ namespace Logship.Agent.Core.Services.Sources.Common
                 this.Buffer.Add(traces);
             }
 
-            // Emit process metrics
-            EmitProcessMetrics();
+            if (this.Config.EnableProcessMetrics)
+            {
+                EmitProcessMetrics();
+            }
 
             return Task.CompletedTask;
         }
@@ -166,7 +177,7 @@ namespace Logship.Agent.Core.Services.Sources.Common
         private void EmitProcessMetrics()
         {
             var now = DateTimeOffset.UtcNow;
-            var process = Process.GetCurrentProcess();
+            using var process = Process.GetCurrentProcess();
             var gcInfo = GC.GetGCMemoryInfo();
 
             var record = new DataRecord("logship.agent.process", now, new Dictionary<string, object>

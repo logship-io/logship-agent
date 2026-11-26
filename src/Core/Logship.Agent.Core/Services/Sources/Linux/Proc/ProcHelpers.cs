@@ -2,30 +2,35 @@
 // Copyright (c) Logship LLC. All rights reserved.
 // </copyright>
 
-using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Logship.Agent.Core.Services.Sources.Linux.Proc
 {
     internal static class ProcHelpers
     {
-        /// <summary>
-        /// Executes a linux command, and returns the results as a string.
-        /// </summary>
-        /// <param name="command">The command.</param>
-        /// <param name="args">The command arguments.</param>
-        /// <param name="token">Cancellation support.</param>
-        /// <returns>The result.</returns>
-        public static async Task<string> ExecuteLinuxCommand(string command, string args, CancellationToken token)
+        public static int? ReadClockTicks(Stream auxiliaryVector)
         {
-            using var process = Process.Start(new ProcessStartInfo
+            const nuint AtNull = 0;
+            const nuint AtClockTicks = 17;
+
+            // Linux exposes each auxiliary-vector entry as two native-width, native-endian words.
+            Span<byte> entry = stackalloc byte[2 * IntPtr.Size];
+            while (auxiliaryVector.ReadAtLeast(entry, entry.Length, throwOnEndOfStream: false) == entry.Length)
             {
-                FileName = command,
-                Arguments = args,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true,
-            })!;
-            await process.WaitForExitAsync(token);
-            return process.StandardOutput.ReadToEnd();
+                var type = MemoryMarshal.Read<nuint>(entry);
+                if (type == AtNull)
+                {
+                    break;
+                }
+
+                if (type == AtClockTicks)
+                {
+                    var ticks = MemoryMarshal.Read<nuint>(entry[IntPtr.Size..]);
+                    return ticks is > 0 and <= int.MaxValue ? (int)ticks : null;
+                }
+            }
+
+            return null;
         }
     }
 }

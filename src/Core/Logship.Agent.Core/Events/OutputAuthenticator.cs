@@ -20,6 +20,7 @@ namespace Logship.Agent.Core.Events
     public sealed class OutputAuthenticator : IOutputAuth, IRefreshAuth, IDisposable
     {
         private readonly string endpoint;
+        private readonly string? configuredCredential;
         private readonly Guid accountId;
         private readonly ITokenStorage tokenStorage;
         private readonly IHttpClientFactory httpClient;
@@ -35,6 +36,7 @@ namespace Logship.Agent.Core.Events
         {
             this.endpoint = config.Value.Endpoint;
             this.accountId = config.Value.Account;
+            this.configuredCredential = config.Value.Registration?.RegistrationToken;
             this.tokenStorage = tokenStorage;
             this.httpClient = httpClient;
             this.logger = logger;
@@ -82,13 +84,9 @@ namespace Logship.Agent.Core.Events
             AuthenticatorLog.DeviceVerificationId(logger, this.deviceId);
             if (this.RequiresRefresh)
             {
+                await this.semaphore.WaitAsync(token);
                 try
                 {
-                    if (false == this.semaphore.Wait(0, token))
-                    {
-                        await this.semaphore.WaitAsync(token);
-                    }
-
                     if (this.RequiresRefresh)
                     {
 
@@ -116,6 +114,10 @@ namespace Logship.Agent.Core.Events
                             {
                                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", this.refreshToken);
                             }
+                            else
+                            {
+                                request.Headers.Add("X-Logship-Enrollment-Proof", await this.tokenStorage.GetEnrollmentProofAsync(this.accountId, token));
+                            }
 
                             try
                             {
@@ -134,6 +136,7 @@ namespace Logship.Agent.Core.Events
                                             if (unauthorizedContent != null && !string.IsNullOrEmpty(unauthorizedContent.RefreshToken))
                                             {
                                                 AuthenticatorLog.RefreshingWithNewToken(logger);
+                                                await this.tokenStorage.StoreTokenAsync(unauthorizedContent.RefreshToken, token);
                                                 this.refreshToken = unauthorizedContent.RefreshToken;
                                                 this.accessToken = null;
                                                 AuthenticatorLog.DeviceIdentifier(logger, this.deviceId);
@@ -142,11 +145,15 @@ namespace Logship.Agent.Core.Events
                                             }
                                         }
 
-                                        // 401 without a usable refresh token: clear stored tokens and retry unauthenticated
-                                        AuthenticatorLog.ClearingTokensForReauth(logger);
-                                        this.refreshToken = null;
+                                        // A still-valid configured token can renew the same pre-approved
+                                        // agent after a long offline period. The server validates the token.
+                                        if (this.configuredCredential != this.refreshToken && SameAgent(this.configuredCredential, this.refreshToken))
+                                        {
+                                            this.refreshToken = this.configuredCredential;
+                                            continue;
+                                        }
+                                        AuthenticatorLog.CredentialRejected(logger);
                                         this.accessToken = null;
-                                        await this.tokenStorage.DeleteTokenAsync(token);
                                         await Task.Delay(15_000, token);
                                         continue;
                                     }
@@ -180,6 +187,7 @@ namespace Logship.Agent.Core.Events
                             await Task.Delay(15_000, token);
                         }
 
+                        token.ThrowIfCancellationRequested();
                         this.accessToken = content!.AccessToken;
                         this.refreshToken = content.RefreshToken;
                         await this.tokenStorage.StoreTokenAsync(this.refreshToken, token);
@@ -197,6 +205,10 @@ namespace Logship.Agent.Core.Events
                         }
                     }
                 }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     AuthenticatorLog.AccessTokenError(logger, ex);
@@ -210,6 +222,20 @@ namespace Logship.Agent.Core.Events
             }
 
             return (this.refreshToken, this.accessToken);
+        }
+
+        private bool SameAgent(string? configured, string? saved)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (configured is null || saved is null || !handler.CanReadToken(configured) || !handler.CanReadToken(saved)) return false;
+            var candidate = handler.ReadJwtToken(configured);
+            var previous = handler.ReadJwtToken(saved);
+            if (candidate.ValidTo <= DateTime.UtcNow) return false;
+            string? Claim(JwtSecurityToken jwt, string name) => jwt.Claims.FirstOrDefault(c => c.Type == name)?.Value;
+            return Guid.TryParse(Claim(candidate, "AccountId"), out var account) && account == this.accountId
+                && Guid.TryParse(Claim(previous, "AccountId"), out var previousAccount) && previousAccount == account
+                && Guid.TryParse(Claim(candidate, "AgentId"), out var agent)
+                && Guid.TryParse(Claim(previous, "AgentId"), out var previousAgent) && previousAgent == agent;
         }
 
         public async Task Invalidate(CancellationToken token)
@@ -239,13 +265,9 @@ namespace Logship.Agent.Core.Events
 
         public async Task SetTokens(string? refreshToken, string? accessToken, CancellationToken token)
         {
+            await this.semaphore.WaitAsync(token);
             try
             {
-                if (false == this.semaphore.Wait(0, token))
-                {
-                    await this.semaphore.WaitAsync(token);
-                }
-
                 this.refreshToken = refreshToken;
                 this.accessToken = accessToken;
             }
@@ -275,8 +297,8 @@ namespace Logship.Agent.Core.Events
         [LoggerMessage(LogLevel.Information, "Received new refresh token. Attempting to refresh with it.")]
         public static partial void RefreshingWithNewToken(ILogger logger);
 
-        [LoggerMessage(LogLevel.Warning, "Received 401 without usable refresh token. Clearing stored tokens for full re-authentication.")]
-        public static partial void ClearingTokensForReauth(ILogger logger);
+        [LoggerMessage(LogLevel.Warning, "Agent credential rejected. Check expiry and revocation before re-enrolling.")]
+        public static partial void CredentialRejected(ILogger logger);
 
         [LoggerMessage(LogLevel.Information, "Device verification ID: {deviceId}")]
         public static partial void DeviceVerificationId(ILogger logger, string deviceId);

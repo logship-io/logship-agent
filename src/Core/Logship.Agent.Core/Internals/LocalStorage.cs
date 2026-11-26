@@ -31,12 +31,47 @@ namespace Logship.Agent.Core.Internals
             }
         }
 
+        public async Task<string> GetEnrollmentProofAsync(Guid accountId, CancellationToken cancellationToken)
+        {
+            var path = Path.Combine(this.DataPath, $"enrollment-{accountId:N}");
+            if (!File.Exists(path))
+            {
+                var temporaryPath = path + Guid.NewGuid().ToString("N") + ".tmp";
+                try
+                {
+                    var proof = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+                    await WriteCredentialAsync(temporaryPath, proof, cancellationToken);
+                    try { File.Move(temporaryPath, path); }
+                    catch (IOException) when (File.Exists(path)) { }
+                }
+                finally { File.Delete(temporaryPath); }
+            }
+            return await File.ReadAllTextAsync(path, cancellationToken);
+        }
+
+        private static async Task WriteCredentialAsync(string path, string value, CancellationToken cancellationToken)
+        {
+            var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
+            if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            await using var stream = new FileStream(path, options);
+            await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(value), cancellationToken);
+            stream.Flush(flushToDisk: true);
+        }
+
         public async Task StoreTokenAsync(string token, CancellationToken cancellationToken)
         {
             string path = Path.Join(this.DataPath, this.TokenFileName);
-            await this.DeleteTokenAsync(cancellationToken);
+            var temporaryPath = path + Guid.NewGuid().ToString("N") + ".tmp";
             LocalStorageLog.StoreToken(logger, path);
-            await File.WriteAllTextAsync(path, token, cancellationToken);
+            try
+            {
+                await WriteCredentialAsync(temporaryPath, token, cancellationToken);
+                File.Move(temporaryPath, path, overwrite: true);
+            }
+            finally
+            {
+                File.Delete(temporaryPath);
+            }
         }
 
         public async Task<string?> RetrieveTokenAsync(CancellationToken cancellationToken)

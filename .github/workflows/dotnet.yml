@@ -7,9 +7,6 @@ on:
   pull_request:
     branches: [ "master" ]
 
-env:
-  DOTNET_VERSION: '9.0.200'
-
 jobs:
   build:
     strategy:
@@ -18,13 +15,13 @@ jobs:
           - runtime: win-x64
             os: windows-latest
           - runtime: win-arm64
-            os: windows-latest
+            os: windows-11-arm
           - runtime: linux-x64
-            os: ubuntu-latest
+            os: ubuntu-22.04
           - runtime: linux-arm64
             os: ubuntu-22.04-arm
           - runtime: osx-x64
-            os: macos-latest
+            os: macos-15-intel
           - runtime: osx-arm64
             os: macos-latest
 
@@ -35,7 +32,7 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        global-json-file: global.json
     - name: Init Submodules
       run: git submodule update --init --recursive
     - name: Restore dependencies
@@ -44,8 +41,26 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    - name: Install Linux Native AOT dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang zlib1g-dev
     - name: Publish
       run: dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r ${{ matrix.runtime }} -o out --self-contained true
+    - name: Validate configuration with the published agent
+      shell: pwsh
+      run: |
+        $agentName = if ($IsWindows) { 'Logship.Agent.ConsoleHost.exe' } else { 'Logship.Agent.ConsoleHost' }
+        $agent = (Resolve-Path "out/$agentName").Path
+        $configDir = (Resolve-Path src/ConsoleHost/config).Path
+        $account = '--Output:account=00000000-0000-0000-0000-000000000001'
+        foreach ($preset in 'windows', 'macos', 'linux', 'openwrt', 'full') {
+          & $agent --contentRoot $configDir --environment $preset --validate-config=true $account
+          if ($LASTEXITCODE -ne 0) { throw "Invalid $preset configuration." }
+        }
+        & $agent --contentRoot (Resolve-Path out).Path --validate-config=true $account
+        if ($LASTEXITCODE -ne 0) { throw 'Invalid packaged configuration.' }
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:

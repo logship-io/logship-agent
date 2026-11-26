@@ -19,6 +19,9 @@ namespace Logship.Agent.Core.Services
 
         private string? registrationToken = null;
         private string deviceId = string.Empty;
+        private volatile bool initialAuthenticationComplete;
+
+        internal bool InitialAuthenticationComplete => this.initialAuthenticationComplete;
 
         public AgentAuthenticationService(ITokenStorage tokenStorage, IOptions<OutputConfiguration> config, IRefreshAuth refreshAuthenticator, IHttpClientFactory httpClientFactory, ILogger<AgentAuthenticationService> logger)
         {
@@ -33,17 +36,8 @@ namespace Logship.Agent.Core.Services
         public async Task PerformRefreshAsync(CancellationToken cancellationToken)
         {
             var delay = TimeSpan.FromSeconds(5);
-            string? token = null;
-            if (false == string.IsNullOrWhiteSpace(this.registrationToken))
-            {
-                token = this.registrationToken;
-                this.registrationToken = null; // Clear the registration token after use
-            }
-
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                token = await this.tokenStorage.RetrieveTokenAsync(cancellationToken);
-            }
+            var token = await this.tokenStorage.RetrieveTokenAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(token)) token = this.registrationToken;
 
             if (false == string.IsNullOrWhiteSpace(token))
             {
@@ -57,6 +51,8 @@ namespace Logship.Agent.Core.Services
                 var (_, accessToken) = await this.refreshAuthenticator.GetTokensAsync(cancellationToken);
                 if (false == string.IsNullOrWhiteSpace(accessToken))
                 {
+                    this.initialAuthenticationComplete = true;
+                    AgentRefreshServiceLog.SuccessfulRefresh(this.logger);
                     return;
                 }
 
@@ -68,7 +64,6 @@ namespace Logship.Agent.Core.Services
                 }
             }
 
-            AgentRefreshServiceLog.SuccessfulRefresh(this.logger);
         }
     }
 

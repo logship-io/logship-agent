@@ -12,6 +12,8 @@ namespace Logship.Agent.Core.Services
 {
     public interface ITokenStorage
     {
+        Task<string> GetEnrollmentProofAsync(Guid accountId, CancellationToken cancellationToken);
+
         Task StoreTokenAsync(string token, CancellationToken cancellationToken);
 
         Task DeleteTokenAsync(CancellationToken cancellationToken);

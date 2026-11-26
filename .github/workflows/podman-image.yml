@@ -4,23 +4,28 @@ on:
   push:
     tags:
       - v*
+  workflow_dispatch:
+
+concurrency:
+  group: logship-release
+  queue: max
 
 env:
   REGISTRY: cr.logship.io
   IMAGE_NAME: logship-agent
-  DOTNET_VERSION: '10.0.x'
 
 jobs:
   build:
+    if: startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
         include:
           - runtime: win-x64
             os: windows-latest
           - runtime: win-arm64
-            os: windows-latest
+            os: windows-11-arm
           - runtime: linux-x64
-            os: ubuntu-latest
+            os: ubuntu-22.04
           - runtime: linux-musl-x64
             os: ubuntu-latest
           - runtime: linux-arm64
@@ -28,7 +33,7 @@ jobs:
           - runtime: linux-musl-arm64
             os: ubuntu-22.04-arm
           - runtime: osx-x64
-            os: macos-latest
+            os: macos-15-intel
           - runtime: osx-arm64
             os: macos-latest
           
@@ -37,15 +42,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: ARM dependencies
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.runtime == 'linux-arm64' }}
-        run: |
-          sudo apt-get install gcc make gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu zlib1g-dev
-
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
+
+      - name: Install Linux Native AOT dependencies
+        if: matrix.runtime == 'linux-x64' || matrix.runtime == 'linux-arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev
       
       - name: Build
         if: ${{ matrix.runtime != 'linux-musl-x64' && matrix.runtime != 'linux-musl-arm64' }}
@@ -56,21 +62,35 @@ jobs:
       - name: Build MUSL in Alpine
         if: ${{ matrix.runtime == 'linux-musl-x64' || matrix.runtime == 'linux-musl-arm64' }}
         run: |
-          docker run --rm -v "$PWD:/workspace" -w /workspace mcr.microsoft.com/dotnet/sdk:10.0-alpine-aot sh -c '
-            echo "Running a bunch of extra steps to make sure PROTOC works"
+          docker run --rm -v "$PWD:/workspace" -w /workspace mcr.microsoft.com/dotnet/sdk:11.0.100-alpine3.24-aot sh -ec '
             export PROTOBUF_PROTOC=/usr/bin/protoc
             export gRPC_PluginFullPath=/usr/bin/grpc_csharp_plugin
-            apk add protobuf protobuf-dev grpc grpc-plugins
+            apk add git protobuf protobuf-dev grpc grpc-plugins
             git config --global --add safe.directory /workspace
             git submodule update --init --recursive
             dotnet publish src/ConsoleHost/Logship.Agent.ConsoleHost.csproj -c Release -r ${{ matrix.runtime }} -o out --self-contained true
+            ./out/Logship.Agent.ConsoleHost --contentRoot /workspace/out --environment openwrt --validate-config=true --Output:account=00000000-0000-0000-0000-000000000001
           '
 
-      - name: Package
+      - name: Package Windows
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Get-ChildItem ".\out\Logship.Agent.ConsoleHost.exe", ".\out\Logship.Agent.ConsoleHost", ".\out\appsettings.json" -ErrorAction SilentlyContinue |
-          Compress-Archive -DestinationPath "LogshipAgent-${{ matrix.runtime }}.zip"
+          $archive = "LogshipAgent-${{ matrix.runtime }}.zip"
+          Compress-Archive -LiteralPath out/Logship.Agent.ConsoleHost.exe,out/appsettings.json,out/appsettings.full.json -DestinationPath $archive
+          (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToLowerInvariant() + "  $archive" |
+            Set-Content -Encoding ascii -LiteralPath "$archive.sha256"
+
+      - name: Package Unix
+        if: runner.os != 'Windows'
+        working-directory: out
+        run: |
+          archive="LogshipAgent-${{ matrix.runtime }}.zip"
+          files=(Logship.Agent.ConsoleHost appsettings.json appsettings.full.json)
+          if [[ -f appsettings.openwrt.json ]]; then files+=(appsettings.openwrt.json); fi
+          zip "../$archive" "${files[@]}"
+          cd ..
+          shasum -a 256 "$archive" > "$archive.sha256"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -78,9 +98,10 @@ jobs:
           name: ${{ matrix.runtime }}
           path: |
             *.zip
+            *.sha256
   
   container-release:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -118,8 +139,9 @@ jobs:
       contents: write
     name: Release ${{ github.ref_name }}
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
+      - uses: actions/checkout@v6
       - uses: actions/download-artifact@v4
         with:
           path: out/
@@ -131,4 +153,6 @@ jobs:
           prerelease: false
           files: |
             out/**/*
+            install.sh
+            install.ps1
 

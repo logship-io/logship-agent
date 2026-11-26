@@ -1,5 +1,5 @@
-ARG BASE_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0
-ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/runtime-deps:10.0
+ARG BASE_IMAGE=mcr.microsoft.com/dotnet/sdk:11.0.100
+ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/runtime-deps:11.0
 
 FROM $BASE_IMAGE AS build-env
 WORKDIR /app
@@ -15,7 +15,7 @@ LABEL org.opencontainers.image.description="Logship Agent"
 LABEL org.opencontainers.image.vendor="Logship"
 LABEL org.opencontainers.image.title="logship-agent"
 
-RUN apt-get update && apt-get install libsystemd-dev libudev1 libpcap0.8 iw iproute2 -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install libsystemd0 libudev1 libpcap0.8t64 iw iproute2 -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build-env /app/out .
 ENTRYPOINT ["./Logship.Agent.ConsoleHost"]

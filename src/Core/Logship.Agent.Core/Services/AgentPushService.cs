@@ -13,16 +13,20 @@ namespace Logship.Agent.Core.Services
     {
         private readonly TimeSpan interval;
         private readonly IEventSink eventSink;
+        private readonly AgentAuthenticationService authentication;
 
-        public AgentPushService(IOptions<OutputConfiguration> config, IEventSink eventSink, ILogger<AgentPushService> logger)
+        public AgentPushService(IOptions<OutputConfiguration> config, IEventSink eventSink, AgentAuthenticationService authentication, ILogger<AgentPushService> logger)
             : base(nameof(AgentPushService), logger)
         {
             this.interval = config.Value.Interval;
             this.eventSink = eventSink;
+            this.authentication = authentication;
         }
 
         protected override async Task ExecuteAsync(CancellationToken token)
         {
+            await this.authentication.PerformRefreshAsync(token);
+
             while (false == token.IsCancellationRequested)
             {
                 try
@@ -43,6 +47,11 @@ namespace Logship.Agent.Core.Services
 
         protected override async Task OnStop(CancellationToken token)
         {
+            if (!this.authentication.InitialAuthenticationComplete)
+            {
+                return;
+            }
+
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
             timeout.CancelAfter(TimeSpan.FromSeconds(5));
             try { await eventSink.FlushAsync(timeout.Token); }

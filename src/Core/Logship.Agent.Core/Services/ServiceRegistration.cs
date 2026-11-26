@@ -43,7 +43,7 @@ namespace Logship.Agent.Core.Services
                 })
                 .AddSingleton<IEventBuffer, InMemoryBuffer>()
                 .AddSingleton<IEventSink, EventSink>()
-                .AddTransient<AgentAuthenticationService>()
+                .AddSingleton<AgentAuthenticationService>()
                 .AddHostedService<AgentHealthService>()
                 .AddHostedService<AgentPushService>()
                 .AddHostedService<DiskInformationService>()
