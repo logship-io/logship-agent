@@ -233,7 +233,7 @@ Create the release labels below in the repository. Apply exactly one to a PR bef
 | `release:minor` | `v0.11.0` |
 | `release:major` | `v1.0.0` |
 
-The [Tag after merge workflow](.github/workflows/tag-after-merge.yml) tags the PR's merge commit and starts [Build & Release](.github/workflows/podman-image.yml) for that tag. It applies the bump to the highest stable `vX.Y.Z` tag, or to `v0.0.0` when there are no stable tags. A PR with multiple release labels fails the workflow before a tag is created.
+The [Tag after merge workflow](.github/workflows/tag-after-merge.yml) checks each update to `master` for merged PRs with release labels. Leave the label in place until the workflow runs. It tags the exact commit recorded for the PR and starts [Build & Release](.github/workflows/podman-image.yml) for that tag. It applies the bump to the highest stable `vX.Y.Z` tag, or to `v0.0.0` when there are no stable tags. A PR with multiple release labels fails the workflow before a tag is created.
 
 Manual `v*` tag pushes also run Build & Release. If tagging succeeded and dispatch failed, rerun Tag after merge to reuse the same tag. If the release build failed, rerun Build & Release for that tag. The release workflow publishes native artifacts to GitHub Releases and the container under the release tag and `latest` to both `cr.logship.io/logship-agent` and GHCR.
 
