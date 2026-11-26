@@ -225,7 +225,17 @@ journal or ETW logs can contain related messages alongside these normalized even
 
 ## Publishing images from CI
 
-The [Build & Release workflow](.github/workflows/podman-image.yml) runs when a `v*` Git tag is pushed. It builds the container once and publishes the release tag and `latest` to both `cr.logship.io/logship-agent` and GHCR.
+Create the release labels below in the repository. Apply exactly one to a PR before merging it into `master`.
+
+| PR label | Next tag if the highest stable tag is `v0.10.1` |
+| --- | --- |
+| `release:patch` | `v0.10.2` |
+| `release:minor` | `v0.11.0` |
+| `release:major` | `v1.0.0` |
+
+The [Tag after merge workflow](.github/workflows/tag-after-merge.yml) tags the PR's merge commit and starts [Build & Release](.github/workflows/podman-image.yml) for that tag. It applies the bump to the highest stable `vX.Y.Z` tag, or to `v0.0.0` when there are no stable tags. A PR with multiple release labels fails the workflow before a tag is created.
+
+Manual `v*` tag pushes also run Build & Release. If tagging succeeded and dispatch failed, rerun Tag after merge to reuse the same tag. If the release build failed, rerun Build & Release for that tag. The release workflow publishes native artifacts to GitHub Releases and the container under the release tag and `latest` to both `cr.logship.io/logship-agent` and GHCR.
 
 Configure GitHub Actions repository secrets `LSCR_USER` and `LSCR_PASS` with credentials that can push `cr.logship.io/logship-agent`. These match the credential names used by the backend build. GHCR uses the workflow's `GITHUB_TOKEN` with `packages: write`; the native GitHub release job uses `contents: write`. The Azure pipeline packages the .NET tool; container publishing is handled by GitHub Actions.
 

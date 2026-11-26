@@ -1,0 +1,71 @@
+name: Tag after merge
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [master]
+
+jobs:
+  tag-and-dispatch:
+    if: >-
+      github.event.pull_request.merged &&
+      (contains(github.event.pull_request.labels.*.name, 'release:patch') ||
+       contains(github.event.pull_request.labels.*.name, 'release:minor') ||
+       contains(github.event.pull_request.labels.*.name, 'release:major'))
+    runs-on: ubuntu-latest
+    concurrency:
+      group: logship-release-version
+      queue: max
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      # Use the base branch for ancestry checks without executing code from the checkout.
+      - uses: actions/checkout@v6
+        with:
+          ref: refs/heads/master
+          fetch-depth: 0
+
+      - name: Tag the merged commit and start the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RELEASE_PATCH: ${{ contains(github.event.pull_request.labels.*.name, 'release:patch') }}
+          RELEASE_MINOR: ${{ contains(github.event.pull_request.labels.*.name, 'release:minor') }}
+          RELEASE_MAJOR: ${{ contains(github.event.pull_request.labels.*.name, 'release:major') }}
+        run: |
+          case "$RELEASE_PATCH:$RELEASE_MINOR:$RELEASE_MAJOR" in
+            true:false:false) bump=patch ;;
+            false:true:false) bump=minor ;;
+            false:false:true) bump=major ;;
+            *)
+              echo "::error::Choose exactly one release label: release:patch, release:minor, or release:major."
+              exit 1
+              ;;
+          esac
+
+          if [[ ! "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]] || ! git merge-base --is-ancestor "$MERGE_SHA" HEAD; then
+            echo "::error::The PR merge commit is not in master."
+            exit 1
+          fi
+
+          stable_tag_pattern='^v(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$'
+          tag=$(git tag --points-at "$MERGE_SHA" --sort=-version:refname |
+            awk -v pattern="$stable_tag_pattern" '$0 ~ pattern && !found++ { print }')
+          if [[ -z "$tag" ]]; then
+            latest=$(git tag --list --sort=-version:refname |
+              awk -v pattern="$stable_tag_pattern" '$0 ~ pattern && !found++ { print }')
+            latest=${latest:-v0.0.0}
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            case "$bump" in
+              patch) tag="v$major.$minor.$((patch + 1))" ;;
+              minor) tag="v$major.$((minor + 1)).0" ;;
+              major) tag="v$((major + 1)).0.0" ;;
+            esac
+            git tag "$tag" "$MERGE_SHA"
+            git push origin "refs/tags/$tag"
+          fi
+
+          # A push authenticated with GITHUB_TOKEN does not trigger a tag-push workflow.
+          gh workflow run podman-image.yml --ref "$tag"
