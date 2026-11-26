@@ -4,6 +4,7 @@ using Logship.Agent.Core.Events;
 using Logship.Agent.Core.Records;
 using Logship.Agent.Core.Services;
 using Logship.Agent.Core.Services.Sources.Common.SystemEvents;
+using Logship.Agent.FileBasedTests.Utility;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -61,13 +62,38 @@ public sealed class EventServiceTests
     public async Task AgentPushServiceFlushesOnceMoreOnStop()
     {
         var sink = new FakeSink();
-        var service = new AgentPushService(Options.Create(new OutputConfiguration { Interval = TimeSpan.FromMilliseconds(100) }),
-            sink, NullLogger<AgentPushService>.Instance);
+        using var backend = new TestAgentBackend();
+        var options = Options.Create(new OutputConfiguration { Interval = TimeSpan.FromMilliseconds(100) });
+        var service = new AgentPushService(options, sink, backend.CreateAuthentication(options), NullLogger<AgentPushService>.Instance);
         await service.StartAsync(CancellationToken.None);
         await Until(() => sink.Flushes >= 1);
         var previous = sink.Flushes;
         await service.StopAsync(CancellationToken.None);
         Assert.IsTrue(sink.Flushes > previous);
+    }
+
+    [TestMethod]
+    [Timeout(10000)]
+    public async Task StoppingWhileEnrollmentIsPendingCancelsItWithoutFlushing()
+    {
+        var sink = new FakeSink();
+        var enrollmentStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var backend = new TestAgentBackend
+        {
+            Refresh = async token =>
+            {
+                enrollmentStarted.SetResult();
+                await Task.Delay(Timeout.Infinite, token);
+                return (null, null);
+            },
+        };
+        var options = Options.Create(new OutputConfiguration());
+        var service = new AgentPushService(options, sink, backend.CreateAuthentication(options), NullLogger<AgentPushService>.Instance);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await service.StartAsync(timeout.Token);
+        await enrollmentStarted.Task.WaitAsync(timeout.Token);
+        await service.StopAsync(timeout.Token).WaitAsync(timeout.Token);
+        Assert.AreEqual(0, sink.Flushes);
     }
 
     [TestMethod]
@@ -85,8 +111,9 @@ public sealed class EventServiceTests
     public async Task FinalFlushHonorsHostShutdownCancellation()
     {
         var sink = new FakeSink();
-        var service = new AgentPushService(Options.Create(new OutputConfiguration { Interval = TimeSpan.FromMilliseconds(100) }),
-            sink, NullLogger<AgentPushService>.Instance);
+        using var backend = new TestAgentBackend();
+        var options = Options.Create(new OutputConfiguration { Interval = TimeSpan.FromMilliseconds(100) });
+        var service = new AgentPushService(options, sink, backend.CreateAuthentication(options), NullLogger<AgentPushService>.Instance);
         await service.StartAsync(CancellationToken.None);
         await Until(() => sink.Flushes >= 1);
         sink.OnFlush = token => Task.Delay(Timeout.Infinite, token);

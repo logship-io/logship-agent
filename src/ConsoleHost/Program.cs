@@ -47,6 +47,8 @@ internal sealed class Program
 
         });
         builder.Logging
+            .SetMinimumLevel(LogLevel.Warning)
+            .AddFilter("Logship.Agent.Lifecycle", LogLevel.Information)
             .Configure(_ =>
             {
                 _.ActivityTrackingOptions |= ActivityTrackingOptions.SpanId
@@ -54,6 +56,11 @@ internal sealed class Program
                     | ActivityTrackingOptions.ParentId
                     | ActivityTrackingOptions.Tags;
             });
+        if (OperatingSystem.IsWindows())
+        {
+            builder.Logging.AddFilter<Microsoft.Extensions.Logging.EventLog.EventLogLoggerProvider>(
+                "Logship.Agent.Lifecycle", LogLevel.Information);
+        }
 
         builder.Services
             .AddSystemd()
@@ -62,6 +69,10 @@ internal sealed class Program
                 _.ServiceName = "logship.agent";
             })
             .Configure<OutputConfiguration>(builder.Configuration.GetSection("Output"))
+            .PostConfigure<OutputConfiguration>(options =>
+            {
+                options.DataPath = Path.GetFullPath(options.DataPath, builder.Environment.ContentRootPath);
+            })
             .Configure<SourcesConfiguration>(builder.Configuration.GetSection("Sources"))
             .AddSingleton<IValidateOptions<OutputConfiguration>, OutputConfigurationValidator>()
             .AddSingleton<IValidateOptions<SourcesConfiguration>, SourcesConfigurationValidator>()
@@ -70,12 +81,12 @@ internal sealed class Program
 
         using var app = builder.Build();
         logger = app.Services.GetRequiredService<ILogger<Program>>();
+        SourcesConfiguration sourceConfig;
+        OutputConfiguration outputConfig;
         try
         {
-            app.Services.GetRequiredService<IValidateOptions<OutputConfiguration>>()
-                .Validate("Output", app.Services.GetRequiredService<IOptions<OutputConfiguration>>().Value);
-            app.Services.GetRequiredService<IValidateOptions<SourcesConfiguration>>()
-                .Validate("Sources", app.Services.GetRequiredService<IOptions<SourcesConfiguration>>().Value);
+            outputConfig = app.Services.GetRequiredService<IOptions<OutputConfiguration>>().Value;
+            sourceConfig = app.Services.GetRequiredService<IOptions<SourcesConfiguration>>().Value;
         }
         catch (OptionsValidationException ex)
         {
@@ -84,8 +95,19 @@ internal sealed class Program
             return;
         }
 
-        var sourceConfig = app.Services.GetRequiredService<IOptions<SourcesConfiguration>>().Value;
-        var outputConfig = app.Services.GetRequiredService<IOptions<OutputConfiguration>>().Value;
+        if (builder.Configuration.GetValue<bool>("validate-config"))
+        {
+            if (!Uri.TryCreate(outputConfig.Endpoint, UriKind.Absolute, out var endpoint)
+                || (endpoint.Scheme != Uri.UriSchemeHttp && endpoint.Scheme != Uri.UriSchemeHttps)
+                || outputConfig.Account == Guid.Empty)
+            {
+                Console.Error.WriteLine("Configure Output.endpoint with an HTTP(S) backend URL and Output.account with a nonempty account ID.");
+                Environment.ExitCode = 1;
+            }
+
+            return;
+        }
+
         if (sourceConfig.Otlp != null && sourceConfig.Otlp.Enabled == true)
         {
             ProgramExtensions.Log_MapOtlpGrpc(logger);
@@ -101,11 +123,9 @@ internal sealed class Program
 
         try
         {
-            var handshake = app.Services.GetRequiredService<AgentAuthenticationService>();
-            await handshake.PerformRefreshAsync(tokenSource.Token);
-
             await app.StartAsync(tokenSource.Token);
-            ProgramExtensions.Log_AgentStarted(logger, watch.ElapsedMilliseconds);
+            var lifecycleLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Logship.Agent.Lifecycle");
+            ProgramExtensions.Log_AgentStarted(lifecycleLogger, watch.ElapsedMilliseconds);
             using var running = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token, app.Lifetime.ApplicationStopping);
             await Task.Delay(Timeout.Infinite, running.Token);
         }

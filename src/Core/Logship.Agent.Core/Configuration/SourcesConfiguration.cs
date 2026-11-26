@@ -407,13 +407,22 @@ namespace Logship.Agent.Core.Configuration
 
     public sealed class InternalMetricsConfiguration : BaseIntervalInputConfiguration
     {
+        public InternalMetricsConfiguration()
+        {
+            this.Interval = TimeSpan.FromMinutes(1);
+        }
+
+        [JsonPropertyName("enableProcessMetrics")]
+        [ConfigurationKeyName("enableProcessMetrics")]
+        public bool EnableProcessMetrics { get; set; } = true;
+
         [JsonPropertyName("enableMetrics")]
         [ConfigurationKeyName("enableMetrics")]
-        public bool EnableMetrics { get; set; } = true;
+        public bool EnableMetrics { get; set; }
 
         [JsonPropertyName("enableTracing")]
         [ConfigurationKeyName("enableTracing")]
-        public bool EnableTracing { get; set; } = true;
+        public bool EnableTracing { get; set; }
     }
 
     public sealed class LinuxAuthEventsConfiguration : BaseIntervalInputConfiguration

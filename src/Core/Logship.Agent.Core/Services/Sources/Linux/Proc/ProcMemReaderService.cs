@@ -15,7 +15,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
     internal sealed class ProcMemReaderService : BaseIntervalInputService<ProcConfiguration>
     {
         private readonly Dictionary<int, ProcPidData> processes;
-        private int ClockTicks;
+        private int? clockTicks;
 
         public ProcMemReaderService(IOptions<SourcesConfiguration> config, IEventBuffer buffer, ILogger<ProcMemReaderService> logger)
             : base(config.Value.Proc, buffer, nameof(ProcMemReaderService), logger)
@@ -28,20 +28,35 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
             }
         }
 
-        protected override async Task ExecuteAsync(CancellationToken token)
+        protected override Task OnStart(CancellationToken token)
         {
-            this.ClockTicks = int.Parse(await ProcHelpers.ExecuteLinuxCommand("getconf", "CLK_TCK", token), CultureInfo.InvariantCulture);
-            await base.ExecuteAsync(token);
+            const string auxiliaryVectorPath = "/proc/self/auxv";
+            try
+            {
+                using var auxiliaryVector = File.OpenRead(auxiliaryVectorPath);
+                this.clockTicks = ProcHelpers.ReadClockTicks(auxiliaryVector);
+                if (this.clockTicks == null)
+                {
+                    ProcMemReaderServiceLog.ClockTickFrequencyUnavailable(Logger, auxiliaryVectorPath, null);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                this.clockTicks = null;
+                ProcMemReaderServiceLog.ClockTickFrequencyUnavailable(Logger, auxiliaryVectorPath, ex);
+            }
+
+            return Task.CompletedTask;
         }
 
         protected override Task ExecuteSingleAsync(CancellationToken token)
         {
             ReadProcStat();
-            ReadPerProcessStat(this.ClockTicks);
+            ReadPerProcessStat();
             return Task.CompletedTask;
         }
 
-        private void ReadPerProcessStat(int tickRequency)
+        private void ReadPerProcessStat()
         {
             var now = DateTimeOffset.UtcNow;
             foreach (var processDirectory in Directory.EnumerateDirectories("/proc"))
@@ -88,6 +103,11 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
                                     { "bytes", rssSizePages * 4 * 1024 } // Convert to bytes.
                             }));
 
+                    if (this.clockTicks is not int tickFrequency)
+                    {
+                        continue;
+                    }
+
                     if (false == processes.TryGetValue(pid, out var data))
                     {
                         data = new ProcPidData(Stopwatch.StartNew(), procName, pid, userTime, kernalTIme, numThreads);
@@ -96,7 +116,7 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
                     else
                     {
                         var timeDiff = data.watch.Elapsed;
-                        var totalTicks = timeDiff.TotalSeconds * tickRequency;
+                        var totalTicks = timeDiff.TotalSeconds * tickFrequency;
                         var percentCpu = (userTime + kernalTIme - data.TotalTicks) / (double)totalTicks * 100.0;
 
                         this.Buffer.Add(new DataRecord(
@@ -209,6 +229,9 @@ namespace Logship.Agent.Core.Services.Sources.Linux.Proc
 
     internal static partial class ProcMemReaderServiceLog
     {
+        [LoggerMessage(LogLevel.Warning, "Could not read the Linux clock tick frequency from {Path}. Per-process CPU metrics are disabled.")]
+        public static partial void ClockTickFrequencyUnavailable(ILogger logger, string path, Exception? exception);
+
         [LoggerMessage(LogLevel.Trace, "Logging for process {ProcessId} {Directory}")]
         public static partial void ProcessLogged(ILogger logger, string processId, string directory);
 

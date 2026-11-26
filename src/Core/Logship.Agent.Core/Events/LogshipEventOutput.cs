@@ -5,6 +5,7 @@
 using Logship.Agent.Core.Configuration;
 using Logship.Agent.Core.Internals;
 using Logship.Agent.Core.Records;
+using Logship.Agent.Core.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
@@ -19,17 +20,22 @@ namespace Logship.Agent.Core.Events
         private readonly string endpoint;
         private readonly Guid account;
         private readonly IOutputAuth authenticator;
+        private readonly AgentAuthenticationService authentication;
         private readonly ILogger<LogshipEventOutput> logger;
+        private readonly ILogger lifecycleLogger;
         private readonly HttpClient client;
+        private int firstBatchSent;
 
-        public LogshipEventOutput(IOptions<OutputConfiguration> config, IOutputAuth authenticator, IHttpClientFactory httpClientFactory, ILogger<LogshipEventOutput> logger)
+        public LogshipEventOutput(IOptions<OutputConfiguration> config, IOutputAuth authenticator, AgentAuthenticationService authentication, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
         {
             this.endpoint = config.Value.Endpoint;
             this.account = config.Value.Account;
             this.authenticator = authenticator;
-            this.logger = logger;
+            this.authentication = authentication;
+            this.logger = loggerFactory.CreateLogger<LogshipEventOutput>();
+            this.lifecycleLogger = loggerFactory.CreateLogger("Logship.Agent.Lifecycle");
             this.client = httpClientFactory.CreateClient();
-            EventsLog.Endpoint(logger, this.endpoint, this.account);
+            EventsLog.Endpoint(this.logger, this.endpoint, this.account);
         }
 
         public void Dispose()
@@ -43,6 +49,11 @@ namespace Logship.Agent.Core.Events
             if (records.Count == 0)
             {
                 return true;
+            }
+
+            if (!this.authentication.InitialAuthenticationComplete)
+            {
+                return false;
             }
 
             using var activity = OutputActivitySource.StartActivity("HttpPush", ActivityKind.Client);
@@ -65,10 +76,14 @@ namespace Logship.Agent.Core.Events
             try
             {
                 EventOutputLog.PushingMetrics(this.logger);
-                var response = await this.client.SendAsync(request, cancellationToken);
+                using var response = await this.client.SendAsync(request, cancellationToken);
                 if (response.IsSuccessStatusCode)
                 {
                     EventOutputLog.PushingMetricsSuccessful(this.logger);
+                    if (Interlocked.Exchange(ref this.firstBatchSent, 1) == 0)
+                    {
+                        EventOutputLog.FirstBatchSent(this.lifecycleLogger, records.Count);
+                    }
                 }
                 else
                 {
@@ -81,7 +96,7 @@ namespace Logship.Agent.Core.Events
                     return false;
                 }
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { /* noop */ }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return false; }
             catch (Exception ex)
             {
                 EventOutputLog.PushingMetricsException(this.logger, ex);
@@ -94,6 +109,9 @@ namespace Logship.Agent.Core.Events
 
     internal static partial class EventOutputLog
     {
+        [LoggerMessage(LogLevel.Information, "Connected to Logship and pushed first batch ({Count} records).")]
+        public static partial void FirstBatchSent(ILogger logger, int count);
+
         [LoggerMessage(LogLevel.Debug, "Pushing metrics...")]
         public static partial void PushingMetrics(ILogger logger);
 

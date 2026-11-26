@@ -134,7 +134,10 @@ namespace Logship.Agent.Core.Services.Sources.Common.LogFile
             }
         }
 
-        private async Task ProcessFileAsync(LogFileReader reader, CancellationToken token)
+        private Task ProcessFileAsync(LogFileReader reader, CancellationToken token)
+            => reader.ProcessExclusivelyAsync(() => ProcessFileCoreAsync(reader, token), token);
+
+        private async Task ProcessFileCoreAsync(LogFileReader reader, CancellationToken token)
         {
             try
             {

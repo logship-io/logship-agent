@@ -19,7 +19,7 @@ namespace Logship.Agent.Core.Services
             : base(nameof(AgentHealthService), logger)
         {
             this.sink = sink;
-            this.interval = config.Value.Health?.Interval ?? TimeSpan.FromSeconds(15);
+            this.interval = config.Value.Health?.Interval ?? HealthConfiguration.DefaultInterval;
             this.startupTime = DateTimeOffset.UtcNow;
         }
 

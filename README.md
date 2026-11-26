@@ -2,6 +2,44 @@
 
 The Logship agent collects logs and metrics and uploads them to your Logship instance.
 
+## Install the native agent
+
+The installers download a self-contained release, check its SHA-256 checksum, and register the agent with the host's service manager. Native releases target x64 and arm64. You do not need to install .NET separately.
+
+**Linux (systemd) and macOS**. Install `curl`, `unzip`, and `sha256sum` or `shasum`. On Linux, the installer uses `useradd` to create the service account. Run:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/logship-io/logship-agent/master/install.sh | sudo bash
+```
+
+**Windows**. In an elevated PowerShell window, download and run the installer:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/logship-io/logship-agent/master/install.ps1 -OutFile install.ps1
+.\install.ps1
+```
+
+**OpenWrt**. The installer selects the Linux musl release on x64 and arm64. OpenWrt support is experimental pending runtime verification on both architectures. Use a device with procd, sufficient persistent storage, HTTPS CA certificates, the native libraries needed by the binary, and `curl`, `unzip`, and `sha256sum`. Run from a root shell:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/logship-io/logship-agent/master/install.sh | sh
+```
+
+On a fresh install, edit the installed `appsettings.json` with your backend URL, account ID, and registration token. Rerun the installer with `--start` (or `-Start` in PowerShell) to validate the settings and enable and start the service. For example, use `sudo bash -s -- --start` on the receiving side of the Linux or macOS pipeline. To supply an existing configuration file, pass `--config /path/to/appsettings.json` or `-Config C:\path\to\appsettings.json`. Supplying a configuration starts a fresh installation and explicitly replaces the installed configuration on upgrades.
+
+| Platform | Configuration file | Service status and logs |
+| --- | --- | --- |
+| Linux | `/etc/logship-agent/appsettings.json` | `systemctl status logship-agent` and `journalctl -u logship-agent` |
+| macOS | `/Library/Application Support/Logship Agent/appsettings.json` | `sudo launchctl print system/io.logship.agent` and `/Library/Logs/Logship Agent/` |
+| Windows | `%ProgramData%\Logship Agent\appsettings.json` | `Get-Service logship.agent` and the Application event log, source `Logship.Agent.ConsoleHost` |
+| OpenWrt | `/etc/logship-agent/appsettings.json` | `/etc/init.d/logship-agent running` and `logread` |
+
+Run the installer again to upgrade. Use `--version vX.Y.Z` or `-Version vX.Y.Z` to select a release. Upgrades preserve the installed settings, saved credentials, checkpoints, and service activation state by default. Linux runs as the `logship-agent` system user and Windows as `LocalService`. Give that identity read access to the sources you explicitly enable and write access to your `Output.dataPath` if you change it.
+
+The releases include a platform preset and a commented [full settings reference](src/ConsoleHost/config/appsettings.full.json). The default sources report basic host inventory hourly, plus process health and uptime once per minute. Detailed agent metrics and traces are opt-in under `Sources.Internals`. They can generate substantial data because buffering and uploading diagnostic records also produces measurements.
+
+Routine logs default to `Warning`. The agent logs once when the host starts and again when Logship accepts its first nonempty upload.
+
 ## Pull the container image
 
 ```sh
@@ -43,7 +81,7 @@ Create a file named `appsettings.json` with the following contents. Replace the 
   },
   "Logging": {
     "LogLevel": {
-      "Default": "Information",
+      "Default": "Warning",
       "System.Net.Http.HttpClient.Default": "Warning"
     }
   }
@@ -52,7 +90,7 @@ Create a file named `appsettings.json` with the following contents. Replace the 
 
 `Output.endpoint` is the backend base URL; the agent adds its API paths. `Output.account` selects the account that receives the records. `Output.registration.registrationToken` authenticates the agent initially. `Output.dataPath` stores its refresh token and file checkpoints, so keep it on a persistent volume.
 
-This example collects system information visible inside the container and new lines appended to `*.log` files in `/logs`. Set `startAtBeginning` to `true` to ingest existing file contents. To select other collectors, see the [full configuration](src/ConsoleHost/appsettings.json) and [examples](examples). The full configuration enables several collectors and includes machine-specific paths; adjust it before use.
+This example collects system information visible inside the container and new lines appended to `*.log` files in `/logs`. Set `startAtBeginning` to `true` to ingest existing file contents. To select other collectors, see the [full settings reference](src/ConsoleHost/config/appsettings.full.json) and [examples](examples).
 
 ## Run the container
 
@@ -74,7 +112,7 @@ The configuration file and log directory must exist before running this command.
 
 For a backend running on the **same Linux host**, add `--network host` and set `Output.endpoint` to its host address, such as `http://localhost:5000`. Without host networking, `localhost` refers to the agent container. For a backend in another container, attach the agent to the same Docker network with `--network <network-name>` and use the backend service name and internal port, such as `http://logship-database:5000`. For a remote instance, use its reachable backend URL.
 
-After the first successful registration, remove the `registrationToken` value from the configuration and restart the container with `docker restart logship-agent`. The agent then uses the refresh token saved in `logship-agent-data`. Keep that volume when replacing or upgrading the container. A configured registration token takes precedence over the saved token on every startup.
+After the first successful registration, remove the `registrationToken` value from the configuration and restart the container with `docker restart logship-agent`. The agent then uses the refresh token saved in `logship-agent-data`. Keep that volume when replacing or upgrading the container. The saved refresh token takes precedence on startup. A configured registration token belongs to one pre-approved agent. Use a separate token for each installation. Pending agents also keep a private enrollment proof in the data directory so a retried request reuses the same pending registration.
 
 Environment variables can override JSON settings, using two underscores for each nesting level: `Output__endpoint`, `Output__account`, `Output__registration__registrationToken`, and `Output__dataPath`. For example, add `--env Output__endpoint=https://your-backend.example.com` to `docker run`. Keep registration tokens out of source control.
 

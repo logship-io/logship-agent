@@ -54,11 +54,13 @@ namespace Logship.Agent.Core.Configuration
 
     public sealed class HealthConfiguration
     {
+        internal static readonly TimeSpan DefaultInterval = TimeSpan.FromMinutes(1);
+
         [Required]
         [PositiveTimeSpan]
         [JsonPropertyName("interval")]
 		[ConfigurationKeyName("interval")]
-        public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(15);
+        public TimeSpan Interval { get; set; } = DefaultInterval;
     }
 
     public sealed class RegistrationConfiguration

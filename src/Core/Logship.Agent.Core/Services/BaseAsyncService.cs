@@ -49,6 +49,7 @@ namespace Logship.Agent.Core.Services
                 return Task.CompletedTask;
             }
 
+            this.tokenSource = new CancellationTokenSource();
             this.executionTask = Task.Run(this.ExecuteAsyncWrapper, cancellationToken);
             return Task.CompletedTask;
         }
@@ -73,9 +74,7 @@ namespace Logship.Agent.Core.Services
         {
             using var activity = new Activity("Exec-" + this.ServiceName);
             using var scope = this.Logger.BeginScope("");
-            var tokenSource = new CancellationTokenSource();
-            this.tokenSource = tokenSource;
-            var token = this.tokenSource.Token;
+            var token = this.tokenSource!.Token;
 
             try
             {

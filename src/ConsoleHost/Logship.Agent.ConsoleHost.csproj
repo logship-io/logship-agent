@@ -25,11 +25,28 @@
       <PackageReference Include="Grpc.AspNetCore" />
       <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" />
       <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
-      <PackageReference Include="System.Diagnostics.PerformanceCounter" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Core\Logship.Agent.Core\Logship.Agent.Core.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Content Update="config/appsettings.*.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+    </ItemGroup>
+
+    <Target Name="PublishPlatformConfiguration" AfterTargets="Publish">
+      <PropertyGroup>
+        <PlatformConfiguration Condition="$(RuntimeIdentifier.StartsWith('win-'))">windows</PlatformConfiguration>
+        <PlatformConfiguration Condition="$(RuntimeIdentifier.StartsWith('osx-'))">macos</PlatformConfiguration>
+        <PlatformConfiguration Condition="$(RuntimeIdentifier.StartsWith('linux-'))">linux</PlatformConfiguration>
+      </PropertyGroup>
+      <Copy Condition="'$(PlatformConfiguration)' != ''"
+            SourceFiles="config/appsettings.$(PlatformConfiguration).json"
+            DestinationFiles="$(PublishDir)appsettings.json" />
+      <Copy SourceFiles="config/appsettings.full.json" DestinationFolder="$(PublishDir)" />
+      <Copy Condition="$(RuntimeIdentifier.StartsWith('linux-musl-'))"
+            SourceFiles="config/appsettings.openwrt.json" DestinationFolder="$(PublishDir)" />
+    </Target>
 
 </Project>
