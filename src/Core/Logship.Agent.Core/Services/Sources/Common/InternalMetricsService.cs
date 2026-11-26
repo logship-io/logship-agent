@@ -80,9 +80,12 @@ namespace Logship.Agent.Core.Services.Sources.Common
                     { "value", Convert.ToDouble(measurement, System.Globalization.CultureInfo.InvariantCulture) },
                 };
 
-                foreach (var tag in tags.Where(tag.Value != null))
+                foreach (var tag in tags)
                 {
-                    data[$"tag_{tag.Key}"] = tag.Value;
+                    if (tag.Value != null)
+                    {
+                        data[$"tag_{tag.Key}"] = tag.Value;
+                    }
                 }
 
                 pendingMetrics.Add(new DataRecord("logship.agent.metrics", DateTimeOffset.UtcNow, data));
