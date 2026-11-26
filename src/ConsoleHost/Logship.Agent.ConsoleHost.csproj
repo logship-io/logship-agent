@@ -31,6 +31,11 @@
       <ProjectReference Include="..\Core\Logship.Agent.Core\Logship.Agent.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(PublishAot)' == 'true' and '$(RuntimeIdentifier)' == 'osx-x64'">
+      <!-- The .NET 11 GSS archive contains an unaligned pointer that ld64 cannot encode as a chained fixup. -->
+      <ExtraLinkerArg Include="-no_fixup_chains" />
+    </ItemGroup>
+
     <ItemGroup>
       <Content Update="config/appsettings.*.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
     </ItemGroup>
